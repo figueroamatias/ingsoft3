@@ -1,6 +1,6 @@
 # ingsoft3
 
-# Ingeniería de Software 3
+# Ingeniería de Software III
 
 Repo de Ingeniería de Software 3.
 
