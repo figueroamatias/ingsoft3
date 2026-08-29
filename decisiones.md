@@ -73,6 +73,20 @@ Durante el desarrollo previo a la contenerización, sólo PostgreSQL 16 se ejecu
 
 El volumen `ingsoft3-tp2-db-data` es exclusivamente de desarrollo. No es el volumen definitivo del TP2, no se utilizará como evidencia formal de persistencia y será reemplazado por el volumen declarado en Compose durante la siguiente feature.
 
+### Dominio de movimientos
+
+Los movimientos almacenan descripción, importe, fecha y la referencia a una categoría. No poseen una columna `type`: el tipo se obtiene desde la categoría asociada para evitar dos fuentes de verdad que puedan contradecirse.
+
+Las reglas de descripción, importe, fecha y existencia de la categoría se validan en el Service para devolver errores comprensibles. PostgreSQL refuerza la integridad mediante `NOT NULL`, `CHECK`, `PRIMARY KEY` y `FOREIGN KEY`.
+
+Los importes se almacenan como `NUMERIC(12,2)` y no como tipos de punto flotante. El paquete `pg` devuelve `NUMERIC` como string; por eso `movement.dto.js` lo convierte explícitamente mediante `Number` al construir la respuesta HTTP. No se configuró un parser global oculto.
+
+El Repository devuelve los movimientos junto con `id`, `name` y `type` de su categoría mediante un `JOIN`. Así el frontend recibe una representación completa y no reconstruye relaciones de datos.
+
+### Problemas encontrados
+
+El formulario inicialmente dejaba la fecha vacía. Esto permitía elegir cualquier fecha, pero también facilitaba intentar un envío incompleto. Se resolvió inicializando el campo con la fecha local actual y manteniéndolo editable.
+
 ### Uso de Inteligencia Artificial
 
 Se utilizó Codex como asistencia para analizar la consigna, proponer la separación en capas y preparar la estructura inicial. El resultado se verifica ejecutando PostgreSQL, consultando directamente sus datos, probando los endpoints, comprobando el consumo desde React y construyendo el frontend.

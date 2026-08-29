@@ -4,7 +4,14 @@ Sistema web de control de gastos personales desarrollado para los trabajos prác
 
 ## Estado actual
 
-El TP1 está terminado. El TP2 se encuentra en desarrollo y actualmente dispone de un walking skeleton que comunica React, Express y PostgreSQL.
+El TP1 está terminado. El TP2 se encuentra en desarrollo y actualmente dispone de una aplicación mínima que permite consultar categorías, listar movimientos y registrar nuevos movimientos mediante el flujo React → Express → PostgreSQL.
+
+## Funcionalidad actual
+
+- Consulta de categorías almacenadas en PostgreSQL.
+- Listado de movimientos con su categoría y tipo.
+- Registro de movimientos con validaciones de dominio.
+- Health check del backend y su conexión con PostgreSQL.
 
 ## Tecnologías
 
@@ -55,6 +62,12 @@ npm run dev
 ```
 
 El backend queda disponible en `http://localhost:3000`. Su estado puede consultarse en `http://localhost:3000/health`.
+
+Endpoints disponibles:
+
+- `GET /api/categories`
+- `GET /api/movements`
+- `POST /api/movements`
 
 ### 4. Frontend
 

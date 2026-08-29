@@ -14,3 +14,16 @@ VALUES
     ('Servicios', 'expense'),
     ('Ocio', 'expense')
 ON CONFLICT (name) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS movements (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    description VARCHAR(160) NOT NULL,
+    amount NUMERIC(12,2) NOT NULL,
+    date DATE NOT NULL,
+    category_id INTEGER NOT NULL,
+    CONSTRAINT movements_description_not_blank_check
+        CHECK (char_length(btrim(description)) > 0),
+    CONSTRAINT movements_amount_positive_check CHECK (amount > 0),
+    CONSTRAINT movements_category_fk
+        FOREIGN KEY (category_id) REFERENCES categories (id)
+);

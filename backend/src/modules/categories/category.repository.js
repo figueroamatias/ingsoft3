@@ -9,3 +9,16 @@ export async function findAll() {
 
   return result.rows;
 }
+
+export async function findById(id) {
+  const result = await pool.query(
+    `
+      SELECT id, name, type
+      FROM categories
+      WHERE id = $1
+    `,
+    [id],
+  );
+
+  return result.rows[0] ?? null;
+}
