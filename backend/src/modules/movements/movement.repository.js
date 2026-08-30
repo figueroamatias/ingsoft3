@@ -5,7 +5,7 @@ const movementSelect = `
     movement.id,
     movement.description,
     movement.amount,
-    movement.date,
+    to_char(movement.date, 'YYYY-MM-DD') AS date,
     category.id AS category_id,
     category.name AS category_name,
     category.type AS category_type
