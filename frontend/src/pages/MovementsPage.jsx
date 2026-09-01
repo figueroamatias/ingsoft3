@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { CategoryForm } from "../components/CategoryForm.jsx";
 import { FinancialSummary } from "../components/FinancialSummary.jsx";
 import { MovementForm } from "../components/MovementForm.jsx";
 import { MovementList } from "../components/MovementList.jsx";
 import {
+  createCategory,
   createMovement,
   getCategories,
   getFinancialSummary,
@@ -19,8 +21,10 @@ export function MovementsPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSummaryLoading, setIsSummaryLoading] = useState(true);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categoryError, setCategoryError] = useState("");
+  const [categoryCreationError, setCategoryCreationError] = useState("");
   const [summaryError, setSummaryError] = useState("");
   const [error, setError] = useState("");
 
@@ -69,6 +73,22 @@ export function MovementsPage() {
     }
   }
 
+  async function handleCreateCategory(input) {
+    setIsCreatingCategory(true);
+    setCategoryCreationError("");
+
+    try {
+      const createdCategory = await createCategory(input);
+      setCategories((current) => [...current, createdCategory]);
+      return true;
+    } catch (requestError) {
+      setCategoryCreationError(requestError.message);
+      return false;
+    } finally {
+      setIsCreatingCategory(false);
+    }
+  }
+
   return (
     <main className="app-shell">
       <header>
@@ -80,12 +100,23 @@ export function MovementsPage() {
       </header>
 
       {categoryError && <p className="status status-error">{categoryError}</p>}
+      {categoryCreationError && (
+        <p className="status status-error">{categoryCreationError}</p>
+      )}
       {summaryError && <p className="status status-error">{summaryError}</p>}
       {error && <p className="status status-error">{error}</p>}
 
       <section className="panel" aria-labelledby="financial-summary-title">
         <h2 id="financial-summary-title">Resumen financiero</h2>
         <FinancialSummary summary={summary} isLoading={isSummaryLoading} />
+      </section>
+
+      <section className="panel" aria-labelledby="new-category-title">
+        <h2 id="new-category-title">Nueva categoría</h2>
+        <CategoryForm
+          isSubmitting={isCreatingCategory}
+          onSubmit={handleCreateCategory}
+        />
       </section>
 
       <section className="panel" aria-labelledby="new-movement-title">

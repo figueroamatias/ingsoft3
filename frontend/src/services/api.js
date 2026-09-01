@@ -13,6 +13,16 @@ export function getCategories() {
   return request("/api/categories");
 }
 
+export function createCategory(category) {
+  return request("/api/categories", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(category),
+  });
+}
+
 export function getMovements() {
   return request("/api/movements");
 }
