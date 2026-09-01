@@ -97,6 +97,18 @@ export async function getAllMovements() {
   return movementRepository.findAll();
 }
 
+export async function getFinancialSummary() {
+  const summary = await movementRepository.summarizeByType();
+  const totalIncome = Number(summary.total_income);
+  const totalExpense = Number(summary.total_expense);
+
+  return {
+    totalIncome,
+    totalExpense,
+    balance: Math.round((totalIncome - totalExpense) * 100) / 100,
+  };
+}
+
 export async function createMovement(data) {
   const description = parseDescription(data.description);
   const amount = parseAmount(data.amount);

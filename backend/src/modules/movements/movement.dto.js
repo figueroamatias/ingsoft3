@@ -27,3 +27,11 @@ export function toMovementDto(movement) {
     },
   };
 }
+
+export function toFinancialSummaryDto(summary) {
+  return {
+    totalIncome: Number(summary.totalIncome),
+    totalExpense: Number(summary.totalExpense),
+    balance: Number(summary.balance),
+  };
+}

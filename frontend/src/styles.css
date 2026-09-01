@@ -57,6 +57,30 @@ h1 {
   font-size: 1.2rem;
 }
 
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.summary-item {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f4f7f6;
+}
+
+.summary-item span {
+  color: #66756e;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.summary-item strong {
+  font-size: 1.2rem;
+}
+
 .movement-form {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -188,6 +212,10 @@ button:disabled {
   }
 
   .movement-form {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-grid {
     grid-template-columns: 1fr;
   }
 

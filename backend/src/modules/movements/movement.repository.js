@@ -22,6 +22,24 @@ export async function findAll() {
   return result.rows;
 }
 
+export async function summarizeByType() {
+  const result = await pool.query(`
+    SELECT
+      COALESCE(
+        SUM(movement.amount) FILTER (WHERE category.type = 'income'),
+        0
+      ) AS total_income,
+      COALESCE(
+        SUM(movement.amount) FILTER (WHERE category.type = 'expense'),
+        0
+      ) AS total_expense
+    FROM movements AS movement
+    INNER JOIN categories AS category ON category.id = movement.category_id
+  `);
+
+  return result.rows[0];
+}
+
 export async function findById(id) {
   const result = await pool.query(
     `

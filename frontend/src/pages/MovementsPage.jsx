@@ -1,19 +1,41 @@
 import { useEffect, useState } from "react";
+import { FinancialSummary } from "../components/FinancialSummary.jsx";
 import { MovementForm } from "../components/MovementForm.jsx";
 import { MovementList } from "../components/MovementList.jsx";
 import {
   createMovement,
   getCategories,
+  getFinancialSummary,
   getMovements,
 } from "../services/api.js";
 
 export function MovementsPage() {
   const [categories, setCategories] = useState([]);
   const [movements, setMovements] = useState([]);
+  const [summary, setSummary] = useState({
+    totalIncome: 0,
+    totalExpense: 0,
+    balance: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categoryError, setCategoryError] = useState("");
+  const [summaryError, setSummaryError] = useState("");
   const [error, setError] = useState("");
+
+  async function refreshSummary() {
+    setIsSummaryLoading(true);
+    setSummaryError("");
+
+    try {
+      setSummary(await getFinancialSummary());
+    } catch (requestError) {
+      setSummaryError(`No se pudo cargar el resumen: ${requestError.message}`);
+    } finally {
+      setIsSummaryLoading(false);
+    }
+  }
 
   useEffect(() => {
     getCategories()
@@ -26,6 +48,8 @@ export function MovementsPage() {
       .then(setMovements)
       .catch((requestError) => setError(requestError.message))
       .finally(() => setIsLoading(false));
+
+    refreshSummary();
   }, []);
 
   async function handleCreateMovement(input) {
@@ -35,6 +59,7 @@ export function MovementsPage() {
     try {
       const createdMovement = await createMovement(input);
       setMovements((current) => [createdMovement, ...current]);
+      await refreshSummary();
       return true;
     } catch (requestError) {
       setError(requestError.message);
@@ -55,7 +80,13 @@ export function MovementsPage() {
       </header>
 
       {categoryError && <p className="status status-error">{categoryError}</p>}
+      {summaryError && <p className="status status-error">{summaryError}</p>}
       {error && <p className="status status-error">{error}</p>}
+
+      <section className="panel" aria-labelledby="financial-summary-title">
+        <h2 id="financial-summary-title">Resumen financiero</h2>
+        <FinancialSummary summary={summary} isLoading={isSummaryLoading} />
+      </section>
 
       <section className="panel" aria-labelledby="new-movement-title">
         <h2 id="new-movement-title">Nuevo movimiento</h2>
