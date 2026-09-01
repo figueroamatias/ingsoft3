@@ -17,6 +17,10 @@ export function getMovements() {
   return request("/api/movements");
 }
 
+export function getFinancialSummary() {
+  return request("/api/movements/summary");
+}
+
 export function createMovement(movement) {
   return request("/api/movements", {
     method: "POST",

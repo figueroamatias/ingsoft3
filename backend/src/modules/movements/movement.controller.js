@@ -1,10 +1,23 @@
-import { createMovementDto, toMovementDto } from "./movement.dto.js";
+import {
+  createMovementDto,
+  toFinancialSummaryDto,
+  toMovementDto,
+} from "./movement.dto.js";
 import * as movementService from "./movement.service.js";
 
 export async function getAll(_request, response, next) {
   try {
     const movements = await movementService.getAllMovements();
     response.json(movements.map(toMovementDto));
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getSummary(_request, response, next) {
+  try {
+    const summary = await movementService.getFinancialSummary();
+    response.json(toFinancialSummaryDto(summary));
   } catch (error) {
     next(error);
   }
