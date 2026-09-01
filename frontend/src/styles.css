@@ -81,6 +81,12 @@ h1 {
   font-size: 1.2rem;
 }
 
+.category-form {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+
 .movement-form {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -212,6 +218,10 @@ button:disabled {
   }
 
   .movement-form {
+    grid-template-columns: 1fr;
+  }
+
+  .category-form {
     grid-template-columns: 1fr;
   }
 
