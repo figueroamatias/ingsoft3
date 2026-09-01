@@ -44,7 +44,7 @@ export function MovementsPage() {
     <main className="app-shell">
       <header>
         <p className="eyebrow">Ingeniería de Software 3</p>
-        <h1>Control de gastos personales</h1>
+        <h1>Control de gastos</h1>
         <p className="subtitle">
           Registrá ingresos y gastos usando categorías almacenadas en PostgreSQL.
         </p>
