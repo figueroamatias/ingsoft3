@@ -12,14 +12,18 @@ export function MovementsPage() {
   const [movements, setMovements] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [categoryError, setCategoryError] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([getCategories(), getMovements()])
-      .then(([categoryData, movementData]) => {
-        setCategories(categoryData);
-        setMovements(movementData);
-      })
+    getCategories()
+      .then(setCategories)
+      .catch((requestError) =>
+        setCategoryError(`No se pudieron cargar las categorías: ${requestError.message}`),
+      );
+
+    getMovements()
+      .then(setMovements)
       .catch((requestError) => setError(requestError.message))
       .finally(() => setIsLoading(false));
   }, []);
@@ -50,6 +54,7 @@ export function MovementsPage() {
         </p>
       </header>
 
+      {categoryError && <p className="status status-error">{categoryError}</p>}
       {error && <p className="status status-error">{error}</p>}
 
       <section className="panel" aria-labelledby="new-movement-title">
