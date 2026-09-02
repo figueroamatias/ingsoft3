@@ -26,8 +26,6 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       PORT: 3000
-      JWT_SECRET: ${JWT_SECRET}
-      COOKIE_SECURE: ${COOKIE_SECURE:-false}
     ports:
       - "8080:3000"
     depends_on:

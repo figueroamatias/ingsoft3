@@ -10,69 +10,57 @@ const movementSelect = `
     category.name AS category_name,
     category.type AS category_type
   FROM movements AS movement
-  INNER JOIN categories AS category
-    ON category.id = movement.category_id
-    AND category.user_id = movement.user_id
+  INNER JOIN categories AS category ON category.id = movement.category_id
 `;
 
-export async function findAllByUser(userId) {
-  const result = await pool.query(
-    `
-      ${movementSelect}
-      WHERE movement.user_id = $1
-      ORDER BY movement.date DESC, movement.id DESC
-    `,
-    [userId],
-  );
+export async function findAll() {
+  const result = await pool.query(`
+    ${movementSelect}
+    ORDER BY movement.date DESC, movement.id DESC
+  `);
 
   return result.rows;
 }
 
-export async function summarizeByUser(userId) {
-  const result = await pool.query(
-    `
-      SELECT
-        COALESCE(
-          SUM(movement.amount) FILTER (WHERE category.type = 'income'),
-          0
-        ) AS total_income,
-        COALESCE(
-          SUM(movement.amount) FILTER (WHERE category.type = 'expense'),
-          0
-        ) AS total_expense
-      FROM movements AS movement
-      INNER JOIN categories AS category
-        ON category.id = movement.category_id
-        AND category.user_id = movement.user_id
-      WHERE movement.user_id = $1
-    `,
-    [userId],
-  );
+export async function summarizeByType() {
+  const result = await pool.query(`
+    SELECT
+      COALESCE(
+        SUM(movement.amount) FILTER (WHERE category.type = 'income'),
+        0
+      ) AS total_income,
+      COALESCE(
+        SUM(movement.amount) FILTER (WHERE category.type = 'expense'),
+        0
+      ) AS total_expense
+    FROM movements AS movement
+    INNER JOIN categories AS category ON category.id = movement.category_id
+  `);
 
   return result.rows[0];
 }
 
-export async function findByIdForUser(id, userId) {
+export async function findById(id) {
   const result = await pool.query(
     `
       ${movementSelect}
-      WHERE movement.id = $1 AND movement.user_id = $2
+      WHERE movement.id = $1
     `,
-    [id, userId],
+    [id],
   );
 
   return result.rows[0] ?? null;
 }
 
-export async function create({ userId, description, amount, date, categoryId }) {
+export async function create({ description, amount, date, categoryId }) {
   const result = await pool.query(
     `
-      INSERT INTO movements (user_id, description, amount, date, category_id)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO movements (description, amount, date, category_id)
+      VALUES ($1, $2, $3, $4)
       RETURNING id
     `,
-    [userId, description, amount, date, categoryId],
+    [description, amount, date, categoryId],
   );
 
-  return findByIdForUser(result.rows[0].id, userId);
+  return findById(result.rows[0].id);
 }
