@@ -93,12 +93,12 @@ function parseCategoryId(categoryId) {
   return numericCategoryId;
 }
 
-export async function getAllMovements() {
-  return movementRepository.findAll();
+export async function getAllMovements(userId) {
+  return movementRepository.findAllByUser(userId);
 }
 
-export async function getFinancialSummary() {
-  const summary = await movementRepository.summarizeByType();
+export async function getFinancialSummary(userId) {
+  const summary = await movementRepository.summarizeByUser(userId);
   const totalIncome = Number(summary.total_income);
   const totalExpense = Number(summary.total_expense);
 
@@ -109,19 +109,20 @@ export async function getFinancialSummary() {
   };
 }
 
-export async function createMovement(data) {
+export async function createMovement(userId, data) {
   const description = parseDescription(data.description);
   const amount = parseAmount(data.amount);
   validateDate(data.date);
   const categoryId = parseCategoryId(data.categoryId);
 
-  const category = await categoryRepository.findById(categoryId);
+  const category = await categoryRepository.findByIdForUser(categoryId, userId);
 
   if (!category) {
     throw new AppError("La categoría seleccionada no existe.", 404);
   }
 
   return movementRepository.create({
+    userId,
     description,
     amount,
     date: data.date,

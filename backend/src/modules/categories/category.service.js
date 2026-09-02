@@ -33,21 +33,21 @@ function parseType(type) {
   return type;
 }
 
-export async function getAllCategories() {
-  return categoryRepository.findAll();
+export async function getAllCategories(userId) {
+  return categoryRepository.findAllByUser(userId);
 }
 
-export async function createCategory(data) {
+export async function createCategory(userId, data) {
   const name = parseName(data.name);
   const type = parseType(data.type);
-  const existingCategory = await categoryRepository.findByName(name);
+  const existingCategory = await categoryRepository.findByNameForUser(name, userId);
 
   if (existingCategory) {
     throw new AppError("Ya existe una categoría con ese nombre.", 409);
   }
 
   try {
-    return await categoryRepository.create({ name, type });
+    return await categoryRepository.create({ userId, name, type });
   } catch (error) {
     if (error?.code === "23505") {
       throw new AppError("Ya existe una categoría con ese nombre.", 409);
