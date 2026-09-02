@@ -1,4 +1,4 @@
-import { MovementsPage } from "./pages/MovementsPage.jsx";
+import { MovementsPage } from "./pages/a.jsx";
 
 export function App() {
   return <MovementsPage />;
