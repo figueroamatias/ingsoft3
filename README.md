@@ -1,10 +1,12 @@
 # Ingeniería de Software 3
 
+[![CI](https://github.com/figueroamatias/ingsoft3/actions/workflows/ci.yml/badge.svg)](https://github.com/figueroamatias/ingsoft3/actions/workflows/ci.yml)
+
 Sistema web de control de gastos desarrollado para los trabajos prácticos de Ingeniería de Software 3 de la UCC.
 
 ## Estado actual
 
-El TP1, TP2 y TP3 están terminados. La aplicación permite consultar y crear categorías, listar movimientos, registrar nuevos movimientos y visualizar un resumen financiero mediante el flujo React → Nginx → Express → PostgreSQL.
+El TP1, TP2, TP3 y TP4 están terminados. La aplicación permite consultar y crear categorías, listar movimientos, registrar nuevos movimientos y visualizar un resumen financiero mediante el flujo React → Nginx → Express → PostgreSQL.
 
 ## Funcionalidad
 
