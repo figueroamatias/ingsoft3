@@ -1,187 +1,184 @@
-# Decisiones del proyecto
+Decisiones del proyecto
+TP1 — Git colaborativo
+Estrategia de trabajo
 
-## TP1 — Git colaborativo
+Se utilizó GitHub Flow para trabajar con las ramas y pull requestmain.
 
-### Estrategia de trabajo
+Protección de main
 
-Se utilizó GitHub Flow, trabajando mediante ramas para cada cambio y utilizando Pull Requests antes de integrar modificaciones a la rama `main`.
+La rama main se configuró para evitar cambios directos y requerir Pull Requests
 
-Se utilizó squash merge para mantener un historial más simple y ordenado.
+Resolución del conflicto
 
-### Protección de la rama main
+Para demostrar la resolución de conflictos se crearon dos ramas que modificaban de forma diferente la misma parte de README.md.
 
-Se configuró la rama `main` para impedir pushes directos y exigir que los cambios sean incorporados mediante Pull Requests.
+Git no pudo resolver automáticamente cuál de las dos versiones conservar, por lo que el conflicto se resolvió manualmente antes de continuar con el merge.
 
-Esto evita modificaciones accidentales y permite revisar los cambios antes de incorporarlos al código principal.
+Problemas encontrados
+Inicialmente algunos cambios no generaban un conflicto real porque las ramas modificaban contenido compatible.
+En una prueba se realizó accidentalmente un commit local sobre main, que se corrigió sincronizando nuevamente la rama.
+Finalmente se generó el conflicto de forma controlada modificando la misma línea desde dos ramas diferentes.
+Uso de Inteligencia Artificial
 
-### Resolución del conflicto
+Se utilizó IA como apoyo para interpretar la consigna y consultar algunos comandos de Git y GitHub.
 
-El conflicto ocurrió porque dos ramas modificaron de manera diferente la misma línea del archivo `README.md`.
+Los procedimientos se realizaron y verificaron directamente utilizando Git y el repositorio de GitHub.
 
-Git no pudo resolverlo automáticamente porque no podía determinar cuál de las dos versiones era la correcta.
+TP2 — Contenedores
+Aplicación y arquitectura
 
-El conflicto se resolvió manualmente seleccionando el contenido que debía permanecer.
+Se eligió desarrollar un sistema web simple de control de gastos, compuesto por frontend, backend y base de datos.
 
-El conflicto podría haberse evitado coordinando los cambios entre las ramas o modificando partes diferentes del archivo.
+El frontend utiliza React y Vite, el backend Node.js con Express y los datos se almacenan en PostgreSQL.
 
-### Problemas encontrados
+El backend se organizó por capas:
 
-Durante la realización del trabajo aparecieron algunos problemas:
+Route → Controller → DTO → Service → Repository → PostgreSQL
 
-- Un cambio en `README.md` no había sido guardado, por lo que Git mostraba `nothing to commit`.
-- Inicialmente las dos ramas utilizaban el mismo cambio, por lo que Git no generaba un conflicto.
-- Se realizó accidentalmente un commit local sobre `main`, que se corrigió sincronizando nuevamente la rama con `origin/main`.
-- Finalmente se crearon dos ramas desde el mismo punto de partida modificando la misma línea de manera diferente para generar y resolver el conflicto.
+Contenerización
 
-### Uso de Inteligencia Artificial
+Se crearon Dockerfiles separados para frontend y backend.
 
-Se utilizó ChatGPT como herramienta de asistencia para interpretar la consigna, comprender los conceptos de Git y GitHub y guiar la ejecución de los procedimientos.
+El backend utiliza una imagen de Node.js y ejecuta la aplicación con un usuario no privilegiado.
 
-Las respuestas fueron verificadas realizando los comandos directamente y comprobando los resultados obtenidos tanto en Git como en GitHub.
+El frontend utiliza un build multi-stage: primero se compila con Node.js y luego los archivos generados son servidos mediante Nginx.
 
-## TP2 — Contenedores
+Esto permite que la imagen final del frontend no necesite incluir Node.js ni las dependencias utilizadas durante el desarrollo.
 
-### Aplicación elegida
+Docker Compose
 
-Se eligió desarrollar un sistema web de control de gastos. La aplicación permite trabajar con un dominio pequeño y entendible, con frontend, API y base de datos, sin desviar el objetivo principal de la materia: construir y justificar una cadena DevOps completa durante el semestre.
+Docker Compose coordina tres servicios:
 
-La aplicación es un desarrollo individual, puede ejecutarse localmente y tiene un alcance deliberadamente acotado. Su separación en reglas de negocio y acceso a datos permitirá incorporar tests en trabajos posteriores y realizar modificaciones durante la defensa oral.
+frontend
+backend
+db
 
-### Stack inicial
+Los servicios se comunican mediante la red creada por Compose y utilizan sus nombres de servicio para encontrarse.
 
-El frontend utiliza JavaScript, React y Vite. El backend utiliza JavaScript, Node.js 22 y Express. Los datos se almacenan en PostgreSQL y se acceden mediante el paquete `pg` y SQL directo, sin ORM.
+PostgreSQL posee un healthcheck y el backend comienza cuando la base de datos está disponible.
 
-Utilizar JavaScript en frontend y backend reduce la cantidad de ecosistemas necesarios. PostgreSQL resulta adecuado porque categorías, movimientos y presupuestos poseen relaciones e invariantes claras. Se descartaron TypeScript y un ORM porque agregarían complejidad que no aporta a los objetivos actuales.
+Persistencia
 
-### Arquitectura de la aplicación
+Se utilizó un volumen llamado db_data para mantener la información de PostgreSQL aunque se eliminen y vuelvan a crear los contenedores.
 
-El backend se organiza como un monolito modular por capas. Cada funcionalidad agrupa Route, Controller, DTO cuando existe una transformación concreta, Service y Repository.
+Se comprobó que docker compose down conserva los datos y que docker compose down -v elimina también el volumen.
 
-- Route define endpoints.
-- Controller traduce entre HTTP y la aplicación.
-- DTO selecciona y normaliza los datos que cruzan el límite HTTP.
-- Service contiene reglas de negocio.
-- Repository concentra el acceso a PostgreSQL y las consultas SQL.
+Registry
 
-No se agregó una capa DAO porque Repository ya cumple la responsabilidad de acceso a datos. `app.js` configura y exporta Express, mientras que `server.js` es el único archivo que abre el puerto. Esta separación permitirá importar la aplicación desde tests sin ejecutar `listen`.
+Las imágenes de backend y frontend se publicaron en GitHub Container Registry.
 
-El manejo de errores se centraliza mediante middlewares. `AppError` representa errores esperados con un estado HTTP concreto y evita repetir la misma traducción en cada Controller.
+Se utilizó la versión Docker v0.1.0:
 
-### Configuración local de PostgreSQL
+ghcr.io/figueroamatias/ingsoft3-backend:v0.1.0
+ghcr.io/figueroamatias/ingsoft3-frontend:v0.1.0
 
-Durante el desarrollo previo a la contenerización, sólo PostgreSQL 16 se ejecuta en un contenedor temporal basado en `postgres:16-alpine`. Se publica en `localhost:5433` para no modificar ni interferir con la instalación local existente que utiliza el puerto 5432. React/Vite y Node/Express continúan ejecutándose directamente en la máquina.
+También se creó un Compose alternativo que utiliza estas imágenes publicadas en lugar de construirlas localmente.
 
-El volumen `ingsoft3-tp2-db-data` es exclusivamente de desarrollo. No es el volumen definitivo del TP2, no se utilizará como evidencia formal de persistencia y será reemplazado por el volumen declarado en Compose durante la siguiente feature.
+Problemas encontrados
+El token utilizado inicialmente para publicar en GHCR no tenía los permisos necesarios y se reemplazó por uno con write:packages.
+Se verificó posteriormente que las imágenes pudieran descargarse sin una sesión autenticada.
+Uso de Inteligencia Artificial
 
-### Dominio de movimientos
+Se utilizó IA como apoyo para revisar la estructura de la aplicación, la configuración de Docker y algunos cambios puntuales de implementación.
 
-Los movimientos almacenan descripción, importe, fecha y la referencia a una categoría. No poseen una columna `type`: el tipo se obtiene desde la categoría asociada para evitar dos fuentes de verdad que puedan contradecirse.
+Las decisiones finales y el funcionamiento se verificaron ejecutando la aplicación, probando los endpoints, construyendo las imágenes y comprobando la persistencia y la descarga desde GHCR.
 
-Las reglas de descripción, importe, fecha y existencia de la categoría se validan en el Service para devolver errores comprensibles. PostgreSQL refuerza la integridad mediante `NOT NULL`, `CHECK`, `PRIMARY KEY` y `FOREIGN KEY`.
+TP3 — Planificación y trazabilidad
+Sprint
 
-Los importes se almacenan como `NUMERIC(12,2)` y no como tipos de punto flotante. El paquete `pg` devuelve `NUMERIC` como string; por eso `movement.dto.js` lo convierte explícitamente mediante `Number` al construir la respuesta HTTP. No se configuró un parser global oculto.
+Se definió una duración de 2 semanas por Sprint.
 
-El Repository devuelve los movimientos junto con `id`, `name` y `type` de su categoría mediante un `JOIN`. Así el frontend recibe una representación completa y no reconstruye relaciones de datos.
+Este período permite trabajar con iteraciones relativamente cortas y mantener un alcance manejable para un proyecto individual.
 
-### Dockerfiles
+Límite WIP
 
-El backend utiliza un Dockerfile multi-stage. La etapa `dependencies`, basada en `node:22-alpine`, instala únicamente las dependencias de producción con `npm ci --omit=dev`. La etapa `runtime` copia esas dependencias y el código necesario para ejecutar `src/server.js`, sin conservar archivos del contexto que no forman parte de la aplicación.
+Se definió un límite de 2 elementos simultáneos en In Progress.
 
-La imagen final mantiene Node.js como runtime porque Express necesita ejecutar JavaScript en el servidor. El proceso se ejecuta con el usuario no privilegiado `node`, incluido en la imagen oficial, para evitar que la aplicación se ejecute como root dentro del contenedor.
+Es evitar acumular varias tareas abiertas al mismo tiempo y mantener el foco en terminar el trabajo iniciado.
 
-### Frontend y Nginx
+Organización del trabajo
 
-El frontend también utiliza un Dockerfile multi-stage. La primera etapa usa `node:22-alpine` para instalar dependencias y ejecutar el build de Vite. La segunda etapa utiliza `nginx:alpine` y recibe solamente el contenido estático generado en `dist` y la configuración de Nginx. De esta forma, la imagen final no contiene Node.js, las dependencias de desarrollo ni el entorno completo utilizado para compilar.
+Se utilizó GitHub Projects para organizar el trabajo mediante épicas, historias de usuario y tareas.
 
-Nginx sirve el frontend como una SPA y utiliza `try_files` para devolver `index.html` cuando una ruta no corresponde a un archivo estático. Las llamadas del frontend usan rutas relativas `/api`; Nginx las redirige al servicio `backend:3000`. Esto evita incorporar una URL absoluta del backend en el bundle y evita una configuración CORS innecesaria para el navegador.
+Las relaciones entre los elementos se representaron mediante Sub-issues para mantener la trazabilidad entre los distintos niveles.
 
-### Docker Compose
+También se utilizaron iteraciones para organizar las tareas dentro de los Sprints.
 
-Compose coordina tres servicios: `frontend`, `backend` y `db`. Los contenedores comparten la red creada por Compose y se descubren mediante sus nombres de servicio. Por eso el backend utiliza `DB_HOST=db` y `DB_PORT=5432`, independientemente del puerto utilizado para el desarrollo local fuera de Docker.
+Historia de usuario
 
-PostgreSQL define un healthcheck con `pg_isready`. El backend utiliza `depends_on` con `condition: service_healthy`, por lo que no comienza hasta que la base acepta conexiones. El frontend comienza después del backend.
+Se analizó la siguiente historia:
 
-Las credenciales y el nombre de la base se reciben desde `.env`, que no se versiona. `.env.example` conserva valores de desarrollo reproducibles y no contiene secretos reales.
+“Como desarrollador quiero crear la tabla usuarios para guardar los datos.”
 
-### Persistencia
+Se consideró incorrecta porque describe directamente una tarea técnica y no una necesidad del usuario.
 
-El volumen nombrado `db_data` almacena los datos de PostgreSQL fuera del ciclo de vida de los contenedores. `docker compose down` elimina contenedores y red, pero conserva el volumen y los movimientos registrados. `docker compose down -v` elimina también el volumen; en el siguiente inicio, PostgreSQL crea una base nueva y ejecuta nuevamente `database/init.sql`.
+Una versión más adecuada sería:
 
-### Registry
+“Como usuario, quiero registrarme en la aplicación para poder guardar y consultar mi información.”
 
-Se eligió GitHub Container Registry porque el código ya se administra en GitHub y permite publicar las imágenes junto al repositorio. Backend y frontend se publicaron con el tag Docker `v0.1.0`:
+La creación de la tabla de usuarios podría formar parte de las tareas técnicas necesarias para implementar esa historia.
 
-- `ghcr.io/figueroamatias/ingsoft3-backend:v0.1.0`
-- `ghcr.io/figueroamatias/ingsoft3-frontend:v0.1.0`
+Trazabilidad
 
-El acceso anónimo se verificó cerrando la sesión de GHCR y descargando ambas imágenes nuevamente. `docker-compose.registry.yml` consume esas versiones mediante `image:` en lugar de construirlas mediante `build:`. PostgreSQL continúa utilizando la imagen oficial `postgres:16-alpine`.
+Los Pull Requests se vincularon con Issues utilizando referencias como Closes #N.
 
-### Problemas encontrados
+De esta forma, al completar y mergear un cambio, GitHub puede cerrar automáticamente la tarea relacionada.
 
-El formulario inicialmente dejaba la fecha vacía. Esto permitía elegir cualquier fecha, pero también facilitaba intentar un envío incompleto. Se resolvió inicializando el campo con la fecha local actual y manteniéndolo editable.
+Problemas encontrados
+Inicialmente fue necesario diferenciar las listas simples del Project de las relaciones reales mediante Sub-issues.
+Algunas tareas estaban ubicadas en iteraciones diferentes y se reorganizaron para mantener juntas las tareas pertenecientes a una misma historia.
+Se configuró una automatización para mover a Done las Issues cerradas.
+Las ramas ya utilizadas se eliminaron después de sus merges para mantener el repositorio ordenado.
+Uso de Inteligencia Artificial
 
-Durante las pruebas, Docker Desktop se encontraba apagado y los comandos no podían conectarse al motor de Docker. Se resolvió iniciando Docker Desktop antes de continuar.
+Se utilizó IA como apoyo para interpretar la consigna, revisar la organización del Project y asistir en algunos cambios puntuales relacionados con las tareas planificadas.
 
-El token utilizado inicialmente para publicar en GHCR no tenía permisos suficientes. Se resolvió generando un Personal Access Token classic con el alcance `write:packages`, autenticando Docker y repitiendo la publicación. Después se ejecutó `docker logout ghcr.io` y se verificó el pull anónimo de ambas imágenes.
+La trazabilidad, los estados del Project, los Pull Requests y el comportamiento de la aplicación se comprobaron directamente durante el desarrollo.
 
-### Uso de Inteligencia Artificial
+TP4 — Integración continua
+Pipeline de CI
 
-Se utilizó Codex como asistencia para analizar la consigna, proponer la separación en capas, preparar la estructura, definir la contenerización y organizar las verificaciones. Las propuestas se comprobaron ejecutando PostgreSQL, consultando sus datos, probando endpoints, verificando el consumo desde React, construyendo las imágenes, probando persistencia y descargando las imágenes publicadas sin autenticación.
+Se utilizó GitHub Actions para implementar la integración continua mediante .github/workflows/ci.yml.
 
-## TP3 — Planificación y trazabilidad
+El workflow se ejecuta en Pull Requests hacia main y en pushes realizados sobre esa rama.
 
-### Duración del Sprint
+Se definieron dos jobs independientes:
 
-Se definió una duración de 2 semanas para los sprints.
+build-backend
+build-frontend
 
-Esta duración permite trabajar con iteraciones cortas, mantener un alcance manejable y obtener retroalimentación frecuente. Además, resulta adecuada para un proyecto individual y para organizar el trabajo de acuerdo con las entregas de la materia.
+Como no existe una dependencia entre ellos, ambos pueden ejecutarse en paralelo.
 
-### Límite de trabajo en progreso
+Builds con Docker
 
-Se definió un límite WIP de 2 elementos simultáneos en la columna In Progress.
+Cada job utiliza Docker Buildx y construye la imagen utilizando los mismos Dockerfiles desarrollados en el TP2.
 
-Al tratarse de un proyecto individual, este límite permite concentrarse en una cantidad reducida de tareas y evitar acumular trabajo sin finalizar. El segundo lugar funciona como margen cuando una tarea queda esperando una revisión o alguna dependencia y es necesario avanzar temporalmente con otra.
+Se decidió reutilizar esos Dockerfiles para mantener una única definición de construcción entre el desarrollo y la integración continua.
 
-Durante el desarrollo se utilizó este límite trabajando, por ejemplo, con las tareas de backend y frontend pertenecientes a una misma historia.
+En este TP las imágenes se construyen solamente como validación y no se publican en un registry.
 
-### Diagnóstico de historia de usuario
+Cache
 
-La historia:
+Se configuró cache de capas separado para backend y frontend mediante GitHub Actions Cache.
 
-"Como desarrollador quiero crear la tabla usuarios para guardar los datos."
+Su funcionamiento se comprobó realizando una segunda ejecución y observando capas marcadas como CACHED.
 
-está mal formulada porque describe directamente una tarea técnica de implementación y no una necesidad o un valor observable para un usuario. La creación de una tabla corresponde a una tarea técnica que podría formar parte de una historia de usuario.
+Si el cache deja de estar disponible, el pipeline continúa funcionando y simplemente debe volver a construir las capas.
 
-Una posible reescritura sería:
+Protección de main
 
-"Como usuario, quiero registrarme en la aplicación para poder guardar y consultar mi información."
+Los checks build-backend y build-frontend se configuraron como obligatorios para poder mergear cambios a main.
 
-A partir de esa historia podrían derivarse tareas técnicas como crear la tabla de usuarios, desarrollar el endpoint correspondiente y construir la interfaz necesaria.
+Para probar esta protección se introdujo intencionalmente un error de compilación en el frontend.
 
-### Problemas encontrados y soluciones
+El pipeline detectó el error y GitHub bloqueó el merge. Luego se corrigió el problema, ambos jobs finalizaron correctamente y el merge volvió a quedar habilitado.
 
-Durante la realización del TP3 aparecieron algunos problemas y decisiones de implementación:
+Problemas encontrados
+El workflow tuvo que ejecutarse antes de que GitHub permitiera seleccionar sus checks como obligatorios.
+Se realizó una segunda ejecución para comprobar la reutilización del cache.
+Se introdujo un error controlado en el frontend para verificar que la protección de main funcionara correctamente.
+Uso de Inteligencia Artificial
 
-- Al trabajar con GitHub Projects fue necesario diferenciar una simple lista de tareas de la jerarquía real mediante Sub-issues. Se utilizaron relaciones padre-hijo para mantener una estructura navegable entre épicas, historias y tareas.
+Se utilizó IA como apoyo para interpretar algunos puntos de la consigna y revisar la configuración del workflow.
 
-- Inicialmente algunas tareas habían quedado asignadas a iteraciones diferentes. Se reorganizaron para que la historia de CI y sus dos tareas pertenecieran al mismo Sprint.
-
-- Se configuró el workflow automático del Project para que cuando una Issue se cierre su estado pase automáticamente a Done.
-
-- Se utilizó un límite WIP de 2 elementos y se fueron moviendo las tareas entre Todo, In Progress y Done a medida que se trabajaba sobre ellas.
-
-- Para comprobar la trazabilidad entre planificación y código se utilizaron Pull Requests vinculados con Issues mediante la palabra clave `Closes #N`. Se verificó que, después del merge, las Issues correspondientes se cerraran automáticamente.
-
-- Además de la jerarquía requerida por el práctico, se planificaron mejoras funcionales de la aplicación mediante una segunda épica, historias y tareas. Entre ellas se incorporaron el resumen financiero, el registro de ingresos y la creación de categorías personalizadas.
-
-- Una vez mergeados los cambios se eliminaron las ramas de trabajo que ya no eran necesarias, tanto localmente como en el repositorio remoto, para mantener el repositorio ordenado.
-
-### Uso de Inteligencia Artificial
-
-Se utilizaron ChatGPT y Codex como herramientas de asistencia durante el TP3.
-
-ChatGPT se utilizó principalmente para interpretar la consigna, organizar la jerarquía de épicas, historias y tareas, revisar la configuración del Sprint, el límite WIP y la trazabilidad entre Issues y Pull Requests.
-
-Codex se utilizó como asistencia para implementar cambios puntuales de la aplicación asociados a las tareas planificadas, como el workflow inicial de GitHub Actions, la corrección de la carga independiente de movimientos, el resumen financiero y la creación de categorías personalizadas.
-
-Las propuestas generadas con IA fueron verificadas mediante revisión de los cambios, builds del frontend y backend, ejecución con Docker, pruebas de endpoints, comprobaciones funcionales en la aplicación y revisión de los Pull Requests antes y después de sus merges.
+El comportamiento final se verificó directamente mediante GitHub Actions, sus logs y los Pull Requests.
