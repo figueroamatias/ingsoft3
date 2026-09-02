@@ -11,7 +11,7 @@ import {
   getMovements,
 } from "../services/api.js";
 
-export function MovementsPage() {
+export function MovementsPage({ user, onLogout, isLoggingOut, logoutError }) {
   const [categories, setCategories] = useState([]);
   const [movements, setMovements] = useState([]);
   const [summary, setSummary] = useState({
@@ -92,13 +92,29 @@ export function MovementsPage() {
   return (
     <main className="app-shell">
       <header>
-        <p className="eyebrow">Ingeniería de Software 3</p>
-        <h1>Control de gastos</h1>
+        <div className="authenticated-header">
+          <div>
+            <p className="eyebrow">Ingeniería de Software 3</p>
+            <h1>Control de gastos</h1>
+          </div>
+          <div className="session-actions">
+            <span>{user.email}</span>
+            <button
+              className="button-secondary"
+              disabled={isLoggingOut}
+              type="button"
+              onClick={onLogout}
+            >
+              {isLoggingOut ? "Cerrando…" : "Cerrar sesión"}
+            </button>
+          </div>
+        </div>
         <p className="subtitle">
           Registrá ingresos y gastos usando categorías almacenadas en PostgreSQL.
         </p>
       </header>
 
+      {logoutError && <p className="status status-error">{logoutError}</p>}
       {categoryError && <p className="status status-error">{categoryError}</p>}
       {categoryCreationError && (
         <p className="status status-error">{categoryCreationError}</p>
@@ -111,20 +127,20 @@ export function MovementsPage() {
         <FinancialSummary summary={summary} isLoading={isSummaryLoading} />
       </section>
 
-      <section className="panel" aria-labelledby="new-category-title">
-        <h2 id="new-category-title">Nueva categoría</h2>
-        <CategoryForm
-          isSubmitting={isCreatingCategory}
-          onSubmit={handleCreateCategory}
-        />
-      </section>
-
       <section className="panel" aria-labelledby="new-movement-title">
         <h2 id="new-movement-title">Nuevo movimiento</h2>
         <MovementForm
           categories={categories}
           isSubmitting={isSubmitting}
           onSubmit={handleCreateMovement}
+        />
+      </section>
+
+      <section className="panel" aria-labelledby="new-category-title">
+        <h2 id="new-category-title">Nueva categoría</h2>
+        <CategoryForm
+          isSubmitting={isCreatingCategory}
+          onSubmit={handleCreateCategory}
         />
       </section>
 

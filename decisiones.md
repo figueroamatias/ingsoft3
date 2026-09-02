@@ -127,3 +127,61 @@ El token utilizado inicialmente para publicar en GHCR no tenía permisos suficie
 ### Uso de Inteligencia Artificial
 
 Se utilizó Codex como asistencia para analizar la consigna, proponer la separación en capas, preparar la estructura, definir la contenerización y organizar las verificaciones. Las propuestas se comprobaron ejecutando PostgreSQL, consultando sus datos, probando endpoints, verificando el consumo desde React, construyendo las imágenes, probando persistencia y descargando las imágenes publicadas sin autenticación.
+
+## TP3 — Planificación y trazabilidad
+
+### Duración del Sprint
+
+Se definió una duración de 2 semanas para los sprints.
+
+Esta duración permite trabajar con iteraciones cortas, mantener un alcance manejable y obtener retroalimentación frecuente. Además, resulta adecuada para un proyecto individual y para organizar el trabajo de acuerdo con las entregas de la materia.
+
+### Límite de trabajo en progreso
+
+Se definió un límite WIP de 2 elementos simultáneos en la columna In Progress.
+
+Al tratarse de un proyecto individual, este límite permite concentrarse en una cantidad reducida de tareas y evitar acumular trabajo sin finalizar. El segundo lugar funciona como margen cuando una tarea queda esperando una revisión o alguna dependencia y es necesario avanzar temporalmente con otra.
+
+Durante el desarrollo se utilizó este límite trabajando, por ejemplo, con las tareas de backend y frontend pertenecientes a una misma historia.
+
+### Diagnóstico de historia de usuario
+
+La historia:
+
+"Como desarrollador quiero crear la tabla usuarios para guardar los datos."
+
+está mal formulada porque describe directamente una tarea técnica de implementación y no una necesidad o un valor observable para un usuario. La creación de una tabla corresponde a una tarea técnica que podría formar parte de una historia de usuario.
+
+Una posible reescritura sería:
+
+"Como usuario, quiero registrarme en la aplicación para poder guardar y consultar mi información."
+
+A partir de esa historia podrían derivarse tareas técnicas como crear la tabla de usuarios, desarrollar el endpoint correspondiente y construir la interfaz necesaria.
+
+### Problemas encontrados y soluciones
+
+Durante la realización del TP3 aparecieron algunos problemas y decisiones de implementación:
+
+- Al trabajar con GitHub Projects fue necesario diferenciar una simple lista de tareas de la jerarquía real mediante Sub-issues. Se utilizaron relaciones padre-hijo para mantener una estructura navegable entre épicas, historias y tareas.
+
+- Inicialmente algunas tareas habían quedado asignadas a iteraciones diferentes. Se reorganizaron para que la historia de CI y sus dos tareas pertenecieran al mismo Sprint.
+
+- Se configuró el workflow automático del Project para que cuando una Issue se cierre su estado pase automáticamente a Done.
+
+- Se utilizó un límite WIP de 2 elementos y se fueron moviendo las tareas entre Todo, In Progress y Done a medida que se trabajaba sobre ellas.
+
+- Para comprobar la trazabilidad entre planificación y código se utilizaron Pull Requests vinculados con Issues mediante la palabra clave `Closes #N`. Se verificó que, después del merge, las Issues correspondientes se cerraran automáticamente.
+
+- Además de la jerarquía requerida por el práctico, se planificaron mejoras funcionales de la aplicación mediante una segunda épica, historias y tareas. Entre ellas se incorporaron el resumen financiero, el registro de ingresos y la creación de categorías personalizadas.
+
+- Una vez mergeados los cambios se eliminaron las ramas de trabajo que ya no eran necesarias, tanto localmente como en el repositorio remoto, para mantener el repositorio ordenado.
+
+### Uso de Inteligencia Artificial
+
+Se utilizaron ChatGPT y Codex como herramientas de asistencia durante el TP3.
+
+ChatGPT se utilizó principalmente para interpretar la consigna, organizar la jerarquía de épicas, historias y tareas, revisar la configuración del Sprint, el límite WIP y la trazabilidad entre Issues y Pull Requests.
+
+Codex se utilizó como asistencia para implementar cambios puntuales de la aplicación asociados a las tareas planificadas, como el workflow inicial de GitHub Actions, la corrección de la carga independiente de movimientos, el resumen financiero y la creación de categorías personalizadas.
+
+Las propuestas generadas con IA fueron verificadas mediante revisión de los cambios, builds del frontend y backend, ejecución con Docker, pruebas de endpoints, comprobaciones funcionales en la aplicación y revisión de los Pull Requests antes y después de sus merges.
