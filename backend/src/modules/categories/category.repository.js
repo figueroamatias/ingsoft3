@@ -1,53 +1,49 @@
 import { pool } from "../../config/database.js";
 
-export async function findAllByUser(userId) {
-  const result = await pool.query(
-    `
-      SELECT id, name, type
-      FROM categories
-      WHERE user_id = $1
-      ORDER BY type DESC, name ASC
-    `,
-    [userId],
-  );
+export async function findAll() {
+  const result = await pool.query(`
+    SELECT id, name, type
+    FROM categories
+    ORDER BY type DESC, name ASC
+  `);
 
   return result.rows;
 }
 
-export async function findByIdForUser(id, userId) {
+export async function findById(id) {
   const result = await pool.query(
     `
       SELECT id, name, type
       FROM categories
-      WHERE id = $1 AND user_id = $2
+      WHERE id = $1
     `,
-    [id, userId],
+    [id],
   );
 
   return result.rows[0] ?? null;
 }
 
-export async function findByNameForUser(name, userId) {
+export async function findByName(name) {
   const result = await pool.query(
     `
       SELECT id, name, type
       FROM categories
-      WHERE lower(name) = lower($1) AND user_id = $2
+      WHERE lower(name) = lower($1)
     `,
-    [name, userId],
+    [name],
   );
 
   return result.rows[0] ?? null;
 }
 
-export async function create({ userId, name, type }) {
+export async function create({ name, type }) {
   const result = await pool.query(
     `
-      INSERT INTO categories (user_id, name, type)
-      VALUES ($1, $2, $3)
+      INSERT INTO categories (name, type)
+      VALUES ($1, $2)
       RETURNING id, name, type
     `,
-    [userId, name, type],
+    [name, type],
   );
 
   return result.rows[0];

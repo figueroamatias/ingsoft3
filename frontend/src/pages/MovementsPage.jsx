@@ -11,7 +11,7 @@ import {
   getMovements,
 } from "../services/api.js";
 
-export function MovementsPage({ user, onLogout, isLoggingOut, logoutError }) {
+export function MovementsPage() {
   const [categories, setCategories] = useState([]);
   const [movements, setMovements] = useState([]);
   const [summary, setSummary] = useState({
@@ -92,29 +92,13 @@ export function MovementsPage({ user, onLogout, isLoggingOut, logoutError }) {
   return (
     <main className="app-shell">
       <header>
-        <div className="authenticated-header">
-          <div>
-            <p className="eyebrow">Ingeniería de Software 3</p>
-            <h1>Control de gastos</h1>
-          </div>
-          <div className="session-actions">
-            <span>{user.email}</span>
-            <button
-              className="button-secondary"
-              disabled={isLoggingOut}
-              type="button"
-              onClick={onLogout}
-            >
-              {isLoggingOut ? "Cerrando…" : "Cerrar sesión"}
-            </button>
-          </div>
-        </div>
+        <p className="eyebrow">Ingeniería de Software 3</p>
+        <h1>Control de gastos</h1>
         <p className="subtitle">
           Registrá ingresos y gastos usando categorías almacenadas en PostgreSQL.
         </p>
       </header>
 
-      {logoutError && <p className="status status-error">{logoutError}</p>}
       {categoryError && <p className="status status-error">{categoryError}</p>}
       {categoryCreationError && (
         <p className="status status-error">{categoryCreationError}</p>

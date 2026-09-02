@@ -4,15 +4,14 @@ Sistema web de control de gastos desarrollado para los trabajos prácticos de In
 
 ## Estado actual
 
-El TP1, TP2 y TP3 están terminados. La aplicación permite crear una cuenta, mantener una sesión y administrar categorías y movimientos aislados por usuario mediante el flujo React → Nginx → Express → PostgreSQL.
+El TP1, TP2 y TP3 están terminados. La aplicación permite consultar y crear categorías, listar movimientos, registrar nuevos movimientos y visualizar un resumen financiero mediante el flujo React → Nginx → Express → PostgreSQL.
 
 ## Funcionalidad
 
-- Registro, inicio y cierre de sesión mediante una cookie HttpOnly.
-- Consulta y creación de categorías propias de cada usuario.
-- Listado de movimientos con su categoría y tipo, aislado por usuario.
+- Consulta y creación de categorías almacenadas en PostgreSQL.
+- Listado de movimientos con su categoría y tipo.
 - Registro de movimientos con validaciones de dominio.
-- Resumen financiero individual.
+- Resumen financiero de ingresos, gastos y saldo.
 - Healthcheck del backend y su conexión con PostgreSQL.
 
 ## Tecnologías
@@ -44,9 +43,7 @@ En PowerShell para Windows, el comando equivalente es:
 Copy-Item .env.example .env
 ```
 
-`.env.example` contiene valores exclusivamente de desarrollo y no contiene secretos reales. Antes de usar la aplicación se debe reemplazar `JWT_SECRET` por un valor propio de al menos 32 caracteres. `COOKIE_SECURE=false` permite trabajar por HTTP local; en un despliegue real servido exclusivamente por HTTPS debe utilizarse `COOKIE_SECURE=true`.
-
-Para la ejecución local fuera de Docker se utiliza PostgreSQL en `localhost:5433`. Dentro de Compose, el backend sobrescribe esa dirección y se conecta mediante `DB_HOST=db` y `DB_PORT=5432`.
+`.env.example` contiene valores exclusivamente de desarrollo y no contiene secretos reales. Para la ejecución local fuera de Docker utiliza PostgreSQL en `localhost:5433`. Dentro de Compose, el backend sobrescribe esa dirección y se conecta mediante `DB_HOST=db` y `DB_PORT=5432`.
 
 ## Ejecución mediante build local
 
@@ -64,10 +61,6 @@ La aplicación queda disponible en:
 
 Endpoints principales:
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
-- `GET /api/auth/me`
 - `GET /api/categories`
 - `POST /api/categories`
 - `GET /api/movements`
@@ -92,20 +85,14 @@ Este comando elimina los contenedores y la red, pero conserva el volumen `db_dat
 
 ### Reinicializar la base de datos
 
-El esquema multiusuario agrega las tablas y relaciones `users`, `categories.user_id` y `movements.user_id`. `database/init.sql` solamente se ejecuta cuando PostgreSQL crea un volumen vacío, por lo que un volumen generado con el esquema anterior no se migra automáticamente.
-
-Para conservar información existente antes de cambiar de esquema se debe realizar una copia de seguridad manual. En este proyecto académico, si esos datos de desarrollo no necesitan conservarse, la adopción del nuevo esquema se realiza explícitamente con:
-
 ```bash
 docker compose down -v
 docker compose up -d --build
 ```
 
-La opción `-v` elimina también el volumen persistente y todos sus datos. En el siguiente inicio se ejecuta el nuevo `database/init.sql`. Las categorías iniciales se crean posteriormente, dentro de una transacción, cuando cada usuario registra su cuenta.
+La opción `-v` elimina también el volumen persistente. En el siguiente inicio se vuelve a ejecutar `database/init.sql`, por lo que los movimientos registrados anteriormente dejan de existir y se recrean las categorías iniciales.
 
 ## Ejecución desde GHCR
-
-Las imágenes `v0.1.0` corresponden a la versión anterior de usuario único. Para ejecutar la funcionalidad multiusuario mediante este archivo será necesario publicar una nueva versión de las imágenes y actualizar sus etiquetas; no se debe combinar `v0.1.0` con una base inicializada con el esquema multiusuario.
 
 El Compose de Registry utiliza imágenes publicadas en GitHub Container Registry en lugar de construir frontend y backend localmente:
 
