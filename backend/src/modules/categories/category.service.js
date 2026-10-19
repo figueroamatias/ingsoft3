@@ -33,26 +33,34 @@ function parseType(type) {
   return type;
 }
 
-export async function getAllCategories() {
-  return categoryRepository.findAll();
-}
-
-export async function createCategory(data) {
-  const name = parseName(data.name);
-  const type = parseType(data.type);
-  const existingCategory = await categoryRepository.findByName(name);
-
-  if (existingCategory) {
-    throw new AppError("Ya existe una categoría con ese nombre.", 409);
+export function createCategoryService({ categoryRepository: repository }) {
+  async function getAllCategories() {
+    return repository.findAll();
   }
 
-  try {
-    return await categoryRepository.create({ name, type });
-  } catch (error) {
-    if (error?.code === "23505") {
+  async function createCategory(data) {
+    const name = parseName(data.name);
+    const type = parseType(data.type);
+    const existingCategory = await repository.findByName(name);
+
+    if (existingCategory) {
       throw new AppError("Ya existe una categoría con ese nombre.", 409);
     }
 
-    throw error;
+    try {
+      return await repository.create({ name, type });
+    } catch (error) {
+      if (error?.code === "23505") {
+        throw new AppError("Ya existe una categoría con ese nombre.", 409);
+      }
+
+      throw error;
+    }
   }
+
+  return { createCategory, getAllCategories };
 }
+
+const categoryService = createCategoryService({ categoryRepository });
+
+export const { createCategory, getAllCategories } = categoryService;

@@ -18,6 +18,33 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run backend tests and coverage gate
+        working-directory: ./backend
+        run: npm run test:coverage
+
+      - name: Add backend coverage to job summary
+        if: ${{ always() && hashFiles('backend/coverage/coverage-summary.json') != '' }}
+        run: node scripts/write-coverage-summary.mjs backend/coverage/coverage-summary.json Backend
+
+      - name: Upload backend coverage report
+        if: ${{ always() && hashFiles('backend/coverage/coverage-summary.json') != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-coverage-${{ github.run_id }}
+          path: backend/coverage
+          retention-days: 14
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -35,6 +62,33 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run frontend tests and coverage gate
+        working-directory: ./frontend
+        run: npm run test:coverage
+
+      - name: Add frontend coverage to job summary
+        if: ${{ always() && hashFiles('frontend/coverage/coverage-summary.json') != '' }}
+        run: node scripts/write-coverage-summary.mjs frontend/coverage/coverage-summary.json Frontend
+
+      - name: Upload frontend coverage report
+        if: ${{ always() && hashFiles('frontend/coverage/coverage-summary.json') != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-coverage-${{ github.run_id }}
+          path: frontend/coverage
+          retention-days: 14
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4

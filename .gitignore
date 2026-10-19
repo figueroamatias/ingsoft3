@@ -4,6 +4,7 @@ bin/
 obj/
 dist/
 build/
+coverage/
 
 # secretos: NUNCA se versionan
 .env
@@ -14,3 +15,8 @@ build/
 Thumbs.db
 .vscode/
 .idea/
+
+.agents/
+.claude/
+.codex/
+.arnes/

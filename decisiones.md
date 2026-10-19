@@ -182,3 +182,62 @@ Uso de Inteligencia Artificial
 Se utilizó IA como apoyo para interpretar algunos puntos de la consigna y revisar la configuración del workflow.
 
 El comportamiento final se verificó directamente mediante GitHub Actions, sus logs y los Pull Requests.
+
+# TP5 — Calidad automatizada
+
+## Reglas y tests elegidos
+
+Se incorporaron tests unitarios con Vitest y coverage mediante el proveedor V8. En el backend se eligieron reglas donde un error afectaría directamente la integridad de los datos: nombre y tipo de las categorías, duplicados, descripción e importe de los movimientos, validez de la fecha, identificador y existencia de la categoría, y cálculo del resumen financiero. Estas reglas se probaron porque delimitan los valores aceptados por el dominio antes de acceder a PostgreSQL.
+
+Los tests principales del backend comprueban la creación válida de categorías y movimientos, el rechazo de entradas inválidas, la traducción de la restricción única de PostgreSQL a un error 409, la inexistencia de una categoría y el redondeo del saldo. También se probaron DTOs y middlewares de errores. La suite posee 44 casos ejecutados, ampliamente por encima de los 8 requeridos.
+
+El test parametrizado de categorías recorre nombres y tipos inválidos. En movimientos se parametrizaron importes, descripciones, fechas e identificadores de categoría inválidos. Como casos de error se incluyen, entre otros, una fecha imposible como `2026-02-30`, un importe no positivo y una categoría inexistente.
+
+El mock de backend reemplaza los repositorios de categorías y movimientos. Para permitirlo, los Services se refactorizaron mediante las factories `createCategoryService` y `createMovementService`, que reciben sus dependencias. Las exportaciones utilizadas por la aplicación siguen creando esos Services con los repositorios reales, por lo que el comportamiento funcional no cambia.
+
+En el frontend se probaron el cliente HTTP, los formularios, los componentes de presentación y la página principal. El parametrizado verifica los endpoints GET y los envíos POST. Los casos de error comprueban tanto el mensaje entregado por la API como la respuesta sin JSON y los errores mostrados por la página. El mock reemplaza la dependencia real `fetch` y, en las pruebas de `MovementsPage`, el módulo completo del cliente API. La suite posee 21 casos.
+
+## Coverage y quality gate
+
+La primera medición, realizada antes de fijar el umbral, produjo los siguientes resultados:
+
+- Backend: 100% de line coverage y 98,57% de branch coverage.
+- Frontend: 100% de line coverage y 100% de branch coverage.
+
+Se eligió un threshold global de 95% tanto para líneas como para ramas. El valor está basado en la medición real: queda por debajo de la cobertura actual para tolerar una variación pequeña, pero lo suficientemente cerca como para que pocas líneas nuevas sin tests vuelvan rojo el pipeline. Se decidió exigir ambas métricas porque el proyecto ya alcanza más de 98% en las dos y las ramas permiten detectar caminos alternativos de condiciones que las líneas por sí solas no distinguen.
+
+En backend el cálculo incluye Services, DTOs, errores y middlewares. Se excluyen `server.js`, `app.js`, configuración de base de datos, Routes, Controllers y Repositories porque son bootstrap, wiring de Express o adaptadores de entrada/salida y persistencia; no se excluyó lógica de negocio. En frontend se excluyen solamente `main.jsx`, que monta React y carga estilos, y `App.jsx`, que únicamente compone `MovementsPage`. La página, los componentes y el cliente API sí forman parte del cálculo.
+
+Un coverage alto no garantiza por sí solo que el software sea correcto. Una línea puede ejecutarse sin comprobar el resultado adecuado, pueden faltar combinaciones de datos y también pueden existir errores de requisitos que ningún porcentaje detecte. Por eso se priorizaron asserts de comportamiento y reglas concretas, no solamente recorrer código.
+
+Se analizó una rama no cubierta en `backend/src/modules/movements/movement.dto.js`, en la condición que decide si `description` es string. La entrada concreta `{ description: 42 }` recorrería el camino faltante. No se agregó un test exclusivo del DTO porque su responsabilidad es conservar ese valor y el Service ya verifica y rechaza descripciones que no son strings; la rama se mantiene visible y no se excluye del cálculo.
+
+Se verificó localmente el gate de backend elevando temporalmente el threshold a 99%: los tests pasaron, pero el comando devolvió error porque el branch coverage era 98,57%. En frontend se ejecutó solamente la suite del cliente API: los tests pasaron, la cobertura cayó a 10,86% de líneas y 10,52% de ramas, y el comando devolvió error frente al threshold de 95%.
+
+## Integración con GitHub Actions
+
+Se extendió `.github/workflows/ci.yml` sin reemplazar el pipeline del TP4. Los jobs obligatorios continúan llamándose `build-backend` y `build-frontend`. Cada uno instala dependencias, ejecuta tests con coverage y aplica el threshold antes de construir la imagen con el Dockerfile del TP2. El resumen de líneas, ramas, funciones y statements se publica en GitHub Actions y cada reporte HTML/LCOV/JSON se guarda como artifact durante 14 días.
+
+## Demostración mediante Pull Requests
+
+- PR con secuencia rojo → corrección → verde → merge: **PENDIENTE — completar URL real**.
+- Corrida roja por threshold del PR anterior: **PENDIENTE — completar URL real**.
+- Corrida verde con coverage: **PENDIENTE — completar URL real**.
+- Segundo PR bloqueado y abierto: **PENDIENTE — completar URL real**.
+
+En el primer PR se deberá agregar código válido sin tests hasta bajar del 95%. El check que corresponda al proyecto modificado (`build-backend` o `build-frontend`) deberá fallar en el paso de coverage y bloquear el merge. Luego se agregarán los tests del código nuevo en la misma rama; al recuperar el threshold, el mismo check quedará verde y se podrá mergear.
+
+En el segundo PR se repetirá un cambio pequeño sin tests. Se registrará aquí su URL y se mantendrá abierto, sin corregir ni mergear, como evidencia del bloqueo real por coverage.
+
+## Problemas encontrados y soluciones
+
+- Vitest 5 quedaba bloqueado al descubrir tests en el entorno local. Se utilizó Vitest 4.1, compatible con Node.js 22 y Vite 8, y se comprobó su funcionamiento en ambos proyectos.
+- OneDrive había marcado dependencias del frontend como archivos offline y Node.js esperaba su descarga. Se regeneró `node_modules` mediante `npm ci`; esos archivos son locales, generados y no se versionan.
+- El entorno DOM inicial también quedaba bloqueado. Se utilizó `happy-dom`, soportado por Vitest, manteniendo las pruebas de lógica del cliente API independientes del DOM.
+- `npm audit` detectó una versión transitiva vulnerable de `proxy-addr` en el backend. Se actualizó el lockfile con `npm audit fix` sin modificar la API ni la arquitectura.
+
+## Uso de Inteligencia Artificial
+
+Se utilizaron ChatGPT y Codex como asistencia para interpretar la consigna, seleccionar reglas de negocio relevantes, diseñar la inyección de dependencias, preparar los tests y configurar coverage, thresholds, resúmenes y artifacts en GitHub Actions.
+
+Las propuestas se verificaron ejecutando las suites y builds reales, midiendo line y branch coverage, forzando fallos controlados del threshold, validando Docker Compose y revisando el workflow y sus resultados. Las URLs de ejecuciones y Pull Requests deberán completarse únicamente después de realizar las demostraciones reales en GitHub.
