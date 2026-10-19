@@ -93,38 +93,53 @@ function parseCategoryId(categoryId) {
   return numericCategoryId;
 }
 
-export async function getAllMovements() {
-  return movementRepository.findAll();
-}
-
-export async function getFinancialSummary() {
-  const summary = await movementRepository.summarizeByType();
-  const totalIncome = Number(summary.total_income);
-  const totalExpense = Number(summary.total_expense);
-
-  return {
-    totalIncome,
-    totalExpense,
-    balance: Math.round((totalIncome - totalExpense) * 100) / 100,
-  };
-}
-
-export async function createMovement(data) {
-  const description = parseDescription(data.description);
-  const amount = parseAmount(data.amount);
-  validateDate(data.date);
-  const categoryId = parseCategoryId(data.categoryId);
-
-  const category = await categoryRepository.findById(categoryId);
-
-  if (!category) {
-    throw new AppError("La categoría seleccionada no existe.", 404);
+export function createMovementService({
+  categoryRepository: categories,
+  movementRepository: movements,
+}) {
+  async function getAllMovements() {
+    return movements.findAll();
   }
 
-  return movementRepository.create({
-    description,
-    amount,
-    date: data.date,
-    categoryId,
-  });
+  async function getFinancialSummary() {
+    const summary = await movements.summarizeByType();
+    const totalIncome = Number(summary.total_income);
+    const totalExpense = Number(summary.total_expense);
+
+    return {
+      totalIncome,
+      totalExpense,
+      balance: Math.round((totalIncome - totalExpense) * 100) / 100,
+    };
+  }
+
+  async function createMovement(data) {
+    const description = parseDescription(data.description);
+    const amount = parseAmount(data.amount);
+    validateDate(data.date);
+    const categoryId = parseCategoryId(data.categoryId);
+
+    const category = await categories.findById(categoryId);
+
+    if (!category) {
+      throw new AppError("La categoría seleccionada no existe.", 404);
+    }
+
+    return movements.create({
+      description,
+      amount,
+      date: data.date,
+      categoryId,
+    });
+  }
+
+  return { createMovement, getAllMovements, getFinancialSummary };
 }
+
+const movementService = createMovementService({
+  categoryRepository,
+  movementRepository,
+});
+
+export const { createMovement, getAllMovements, getFinancialSummary } =
+  movementService;
