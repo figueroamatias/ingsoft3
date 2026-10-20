@@ -96,6 +96,7 @@ export function MovementsPage() {
         <h1>Control de gastos</h1>
         <p className="release-marker">TP6 · Continuous Delivery</p>
         <p className="release-marker">TP6 · Demo de gate de producción</p>
+      <p className="release-marker">TP6 · Continuous Delivery validado</p>
         <p className="subtitle">
           Registrá ingresos y gastos usando categorías almacenadas en PostgreSQL.
         </p>
