@@ -220,14 +220,15 @@ Se extendió `.github/workflows/ci.yml` sin reemplazar el pipeline del TP4. Los 
 
 ## Demostración mediante Pull Requests
 
-- PR con secuencia rojo → corrección → verde → merge: **PENDIENTE — completar URL real**.
-- Corrida roja por threshold del PR anterior: **PENDIENTE — completar URL real**.
-- Corrida verde con coverage: **PENDIENTE — completar URL real**.
-- Segundo PR bloqueado y abierto: **PENDIENTE — completar URL real**.
+- PR con secuencia rojo → corrección → verde → merge: https://github.com/figueroamatias/ingsoft3/pull/32.
+- Corrida roja por threshold del PR anterior: https://github.com/figueroamatias/ingsoft3/actions/runs/39360939173.
+- Corrida verde con coverage: https://github.com/figueroamatias/ingsoft3/actions/runs/39361181199.
+- Segundo PR bloqueado y abierto: https://github.com/figueroamatias/ingsoft3/pull/33.
+- Corrida roja del segundo PR: https://github.com/figueroamatias/ingsoft3/actions/runs/39361360251.
 
-En el primer PR se deberá agregar código válido sin tests hasta bajar del 95%. El check que corresponda al proyecto modificado (`build-backend` o `build-frontend`) deberá fallar en el paso de coverage y bloquear el merge. Luego se agregarán los tests del código nuevo en la misma rama; al recuperar el threshold, el mismo check quedará verde y se podrá mergear.
+En el primer PR se agregó código válido sin tests. Los 21 tests existentes pasaron, pero `build-frontend` falló en el paso de coverage porque las líneas bajaron a 94,84%, por debajo del threshold global de 95%; por ese motivo el merge quedó bloqueado aunque el código compilaba. Luego se agregaron tres casos para el código nuevo en la misma rama. La cobertura volvió a 100% en líneas y ramas, los checks quedaron verdes y el PR se pudo mergear.
 
-En el segundo PR se repetirá un cambio pequeño sin tests. Se registrará aquí su URL y se mantendrá abierto, sin corregir ni mergear, como evidencia del bloqueo real por coverage.
+En el segundo PR se agregó otro cambio pequeño sin tests. Los 24 tests existentes pasan y el código compila, pero `build-frontend` falla porque la cobertura queda en 92,38% de líneas y 86,95% de ramas. El PR permanece abierto, rojo, bloqueado y sin mergear como evidencia del quality gate.
 
 ## Problemas encontrados y soluciones
 
@@ -240,4 +241,4 @@ En el segundo PR se repetirá un cambio pequeño sin tests. Se registrará aquí
 
 Se utilizaron ChatGPT y Codex como asistencia para interpretar la consigna, seleccionar reglas de negocio relevantes, diseñar la inyección de dependencias, preparar los tests y configurar coverage, thresholds, resúmenes y artifacts en GitHub Actions.
 
-Las propuestas se verificaron ejecutando las suites y builds reales, midiendo line y branch coverage, forzando fallos controlados del threshold, validando Docker Compose y revisando el workflow y sus resultados. Las URLs de ejecuciones y Pull Requests deberán completarse únicamente después de realizar las demostraciones reales en GitHub.
+Las propuestas se verificaron ejecutando las suites y builds reales, midiendo line y branch coverage, forzando fallos controlados del threshold, validando Docker Compose y revisando el workflow, los Pull Requests y las ejecuciones reales enlazadas en esta sección.
