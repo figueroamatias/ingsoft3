@@ -279,6 +279,14 @@ PENDIENTE: agregar la URL de la corrida de `main` que publique las primeras imá
 
 La imagen del frontend utiliza el template de Nginx en tiempo de arranque. `BACKEND_URL` se reemplaza mediante `envsubst`, por lo que la misma imagen puede apuntar al backend QA o al backend de producción sin recompilarse. `/version` devuelve el `APP_VERSION` de la imagen. El backend incluye el mismo valor en `/health`, que además ejecuta una consulta real a PostgreSQL.
 
+### Proxy HTTPS del frontend en Render
+
+Durante la puesta en funcionamiento real se detectó que el proxy del frontend devolvía `502` al utilizar como destino un backend HTTPS de Render. El template enviaba como encabezado `Host` el dominio recibido por el frontend y no habilitaba SNI para la conexión TLS con el upstream. Por ese motivo, Render no podía asociar correctamente la solicitud con el servicio backend.
+
+Se actualizó el template versionado de Nginx para habilitar `proxy_ssl_server_name`, utilizar `$proxy_host` como nombre SNI y enviar también `$proxy_host` en el encabezado `Host`. Como `BACKEND_URL` se sustituye antes de que Nginx inicie, el `proxy_pass` resultante contiene una URL concreta y Nginx resuelve su dominio normalmente al cargar la configuración; no hace falta incorporar un resolver DNS específico de Docker.
+
+La corrección sigue siendo independiente del entorno: QA y producción utilizan exactamente la misma imagen y sólo configuran un valor distinto de `BACKEND_URL` al iniciar el contenedor. Al quedar esta lógica dentro de `frontend/nginx.conf`, los servicios de Render pueden volver a ejecutar el entrypoint y el comando predeterminados de la imagen, sin el Docker Command especial utilizado durante el diagnóstico.
+
 Cada GitHub Environment debe contener, sin exponer sus valores:
 
 - secrets `BACKEND_DEPLOY_HOOK` y `FRONTEND_DEPLOY_HOOK`;
@@ -357,7 +365,8 @@ Este rollback revierte contenedores, pero no deshace cambios de datos ni migraci
 
 - La conexión de Render solicitó reautenticación. No se inventaron tokens, hooks ni URLs y se dejó pendiente sólo la infraestructura externa.
 - La protección de `main` no tenía checks asociados pese a la documentación previa. Se restauraron los dos checks de CI existentes.
-- Docker Desktop no inició su motor Linux durante la validación local. Los tests, coverage, build de Vite, sintaxis YAML, scripts y Compose pudieron verificarse; el build y smoke con contenedores quedan pendientes de repetir cuando el motor esté disponible.
+- En una validación anterior Docker Desktop no había iniciado su motor Linux. Durante la corrección del proxy se repitió la comprobación con el motor disponible: la imagen del frontend se construyó, `nginx -t` resultó correcto y un contenedor local consumió mediante HTTPS las categorías reales del backend QA.
+- El frontend desplegado en Render respondió inicialmente con `502` al intentar hacer proxy hacia el backend HTTPS. El problema se aisló en el SNI y el encabezado `Host` del upstream. Primero se validó la corrección mediante un Docker Command temporal de Render y luego se trasladó a `frontend/nginx.conf`, de modo que la configuración quede versionada, reproducible y compartida por QA y producción.
 
 ## Uso de Inteligencia Artificial
 
