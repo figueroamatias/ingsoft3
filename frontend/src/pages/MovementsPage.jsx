@@ -94,6 +94,7 @@ export function MovementsPage() {
       <header>
         <p className="eyebrow">Ingeniería de Software 3</p>
         <h1>Control de gastos</h1>
+        <p className="release-marker">TP6 · Continuous Delivery</p>
         <p className="subtitle">
           Registrá ingresos y gastos usando categorías almacenadas en PostgreSQL.
         </p>

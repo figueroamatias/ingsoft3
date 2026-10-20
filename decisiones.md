@@ -242,3 +242,138 @@ En el segundo PR se agregó otro cambio pequeño sin tests. Los 24 tests existen
 Se utilizaron ChatGPT y Codex como asistencia para interpretar la consigna, seleccionar reglas de negocio relevantes, diseñar la inyección de dependencias, preparar los tests y configurar coverage, thresholds, resúmenes y artifacts en GitHub Actions.
 
 Las propuestas se verificaron ejecutando las suites y builds reales, midiendo line y branch coverage, forzando fallos controlados del threshold, validando Docker Compose y revisando el workflow, los Pull Requests y las ejecuciones reales enlazadas en esta sección.
+
+# TP6 — Continuous Delivery
+
+## Estado inicial y proveedor
+
+La aplicación parte de React/Vite servido por Nginx, Express sobre Node.js 22 y PostgreSQL 16. Los Dockerfiles de backend y frontend, los tests, el threshold global de 95%, los jobs obligatorios `build-backend` y `build-frontend`, GHCR y la Release `v5.0.0` ya existían antes de TP6. No existía infraestructura externa para QA o producción ni GitHub Environments configurados.
+
+Se eligió Render como proveedor propuesto porque permite ejecutar imágenes públicas de GHCR, utilizar deploy hooks, exponer servicios web y conectar PostgreSQL administrado. La conexión disponible de Render requiere reautenticación, por lo que todavía no se crearon servicios ni bases y no se presenta ningún deploy como realizado. Además, Render permite una sola base PostgreSQL gratuita por workspace y esa base vence a los 30 días; para mantener QA y producción aislados en el mismo workspace se necesitan dos bases pagas o una decisión explícita sobre otro proveedor.
+
+En GitHub se crearon los Environments `qa` y `production`. `production` tiene como required reviewer a `figueroamatias`, con autoaprobación permitida porque el proyecto es individual. Ambos Environments aceptan deployments solamente desde ramas protegidas. También se restauraron `build-backend` y `build-frontend` como required checks de `main`, ya que la auditoría encontró que la protección existía pero su lista de checks estaba vacía.
+
+## Arquitectura prevista
+
+QA estará formado por un frontend, un backend y una base PostgreSQL exclusivos. Producción tendrá otros tres recursos independientes. El frontend QA apuntará únicamente al backend QA, y este utilizará solamente la base QA. La misma separación se aplicará en producción. Las dos bases no compartirán credenciales, host ni datos.
+
+Los cuatro servicios web se crearán como servicios basados en imágenes públicas de GHCR, con el auto-deploy de Render desactivado. El pipeline será el único responsable de solicitar despliegues. Esta estrategia permite promover exactamente la misma imagen verificada, no sólo el mismo commit.
+
+## Artefactos y trazabilidad
+
+Después de que ambos jobs de TP5 hayan pasado tests, coverage, quality gates y build, `publish-backend` y `publish-frontend` construyen y publican:
+
+- `ghcr.io/figueroamatias/ingsoft3-backend:<GITHUB_SHA>`
+- `ghcr.io/figueroamatias/ingsoft3-frontend:<GITHUB_SHA>`
+
+El SHA completo es una etiqueta inmutable y también se incorpora como label OCI y como `APP_VERSION` dentro de cada imagen. No se utiliza `latest` como fuente de verdad. Los Pull Requests ejecutan CI, pero no publican ni despliegan.
+
+Paquetes públicos existentes:
+
+- Backend: https://github.com/users/figueroamatias/packages/container/package/ingsoft3-backend
+- Frontend: https://github.com/users/figueroamatias/packages/container/package/ingsoft3-frontend
+
+PENDIENTE: agregar la URL de la corrida de `main` que publique las primeras imágenes identificadas por SHA.
+
+## Configuración por entorno
+
+La imagen del frontend utiliza el template de Nginx en tiempo de arranque. `BACKEND_URL` se reemplaza mediante `envsubst`, por lo que la misma imagen puede apuntar al backend QA o al backend de producción sin recompilarse. `/version` devuelve el `APP_VERSION` de la imagen. El backend incluye el mismo valor en `/health`, que además ejecuta una consulta real a PostgreSQL.
+
+Cada GitHub Environment debe contener, sin exponer sus valores:
+
+- secrets `BACKEND_DEPLOY_HOOK` y `FRONTEND_DEPLOY_HOOK`;
+- variables `BACKEND_URL` y `FRONTEND_URL`.
+
+La variable de repositorio `CD_ENABLED` quedó en `false` hasta que los seis recursos externos estén operativos. Sólo después de verificar hooks, URLs y bases deberá cambiarse a `true`.
+
+## Flujo de entrega
+
+`deploy-qa` depende de la publicación exitosa de ambas imágenes. En pushes o ejecuciones manuales sobre `main`, promueve automáticamente las imágenes `${GITHUB_SHA}` a QA mediante el parámetro `imgURL` de los deploy hooks. Luego ejecuta el smoke test.
+
+`deploy-prod` depende de un `deploy-qa` exitoso, usa el Environment `production` y queda esperando la aprobación de su required reviewer antes de acceder a los secretos o ejecutar pasos. La concurrencia `deploy-production` evita dos despliegues productivos simultáneos. Tras la aprobación promueve exactamente las mismas imágenes y ejecuta el smoke de producción.
+
+El workflow también admite `workflow_dispatch` sobre `main` para poder demostrar por separado una corrida rechazada y otra aprobada sin crear cambios artificiales adicionales.
+
+## Smoke test
+
+El script `scripts/smoke-test.sh` realiza hasta 40 intentos, separados por 15 segundos, con un timeout de 10 segundos por request. Verifica:
+
+1. `/health` del backend con estado `ok`, conexión real a la base y SHA esperado;
+2. `/api/categories` como endpoint funcional que consulta PostgreSQL;
+3. `/` del frontend y el texto visible `TP6 · Continuous Delivery`;
+4. `/version` del frontend con el mismo SHA.
+
+La repetición contempla cold starts y el tiempo asincrónico que Render necesita para descargar y activar las imágenes. Que el deploy hook responda correctamente sólo significa que aceptó la solicitud; el smoke es el que confirma que la versión está lista.
+
+## Aprobación, rechazo y evidencias
+
+- GitHub Environment QA: https://github.com/figueroamatias/ingsoft3/deployments/activity_log?environments_filter=qa
+- GitHub Environment producción: https://github.com/figueroamatias/ingsoft3/deployments/activity_log?environments_filter=production
+- PENDIENTE: URL pública del frontend y backend QA.
+- PENDIENTE: URL pública del frontend y backend de producción.
+- PENDIENTE: corrida con producción rechazada y motivo específico observado en QA.
+- PENDIENTE: corrida posterior aprobada, smoke productivo verde y URL del deployment.
+- PENDIENTE: Release `v6.0.0`, que sólo se creará sobre el SHA realmente aprobado y activo en producción.
+
+El rechazo no se puede simular sin servicios reales: primero QA debe desplegar y pasar su smoke; luego se rechazará el job de producción desde GitHub Actions dejando un comentario relacionado con esa corrida. En una segunda ejecución sobre el mismo `main` se aprobará producción.
+
+## Rollback
+
+El rollback consiste en identificar el SHA de la última versión buena y volver a invocar los hooks de backend y frontend con sus imágenes inmutables anteriores:
+
+```text
+ghcr.io/figueroamatias/ingsoft3-backend:<SHA_BUENO>
+ghcr.io/figueroamatias/ingsoft3-frontend:<SHA_BUENO>
+```
+
+Después se ejecuta el mismo smoke test con `<SHA_BUENO>`. PENDIENTE: medir el tiempo desde que se disparan ambos hooks hasta que el smoke confirma la versión anterior en producción.
+
+Este rollback revierte contenedores, pero no deshace cambios de datos ni migraciones. Si una migración eliminara una columna, desplegar la imagen anterior no la recrearía; los cambios de esquema deben diseñarse de forma compatible y disponer de su propio plan de recuperación.
+
+## Configuración manual pendiente
+
+1. Reautenticar la conexión de Render o ingresar al Dashboard.
+2. Crear dos PostgreSQL distintos, uno para QA y otro para producción. En un mismo workspace no pueden ser ambos gratuitos.
+3. Crear cuatro servicios web basados en las imágenes GHCR con tag SHA, desactivar auto-deploy y configurar los backends con las credenciales internas de su base correspondiente.
+4. Configurar `BACKEND_URL` en cada frontend con la URL pública de su backend, sin `/` final.
+5. Ejecutar `database/init.sql` por separado en ambas bases.
+6. Guardar los deploy hooks y URLs en sus GitHub Environments.
+7. Verificar manualmente los cuatro servicios y cambiar `CD_ENABLED` a `true`.
+8. Ejecutar el workflow desde `main`, dejar producción esperando y rechazarla con un motivo concreto.
+9. Ejecutarlo nuevamente, aprobar producción y verificar el smoke.
+10. Medir un rollback real a un SHA bueno anterior y volver a desplegar la versión aprobada.
+11. Completar las URLs y el tiempo de rollback en esta sección.
+12. Crear `v6.0.0` y su Release únicamente sobre el SHA confirmado en producción.
+
+## Riesgos y limitaciones
+
+- Los servicios web gratuitos pueden sufrir cold starts y comparten una cuota mensual de horas.
+- Render permite una sola PostgreSQL gratuita por workspace y la elimina después del período gratuito si no se actualiza el plan.
+- Los deploy hooks son secretos y no deben aparecer en logs ni archivos versionados.
+- Mientras `CD_ENABLED=false`, las imágenes se publican pero los deployments se omiten deliberadamente para no producir falsos fallos ni despliegues incompletos.
+- La estrategia elegida sí promueve la misma imagen bit a bit mediante `imgURL`; si se cambiara a servicios Git-backed, sólo podría garantizarse el mismo commit porque Render reconstruiría la imagen.
+
+## Problemas encontrados y soluciones
+
+- La conexión de Render solicitó reautenticación. No se inventaron tokens, hooks ni URLs y se dejó pendiente sólo la infraestructura externa.
+- La protección de `main` no tenía checks asociados pese a la documentación previa. Se restauraron los dos checks de CI existentes.
+- Docker Desktop no inició su motor Linux durante la validación local. Los tests, coverage, build de Vite, sintaxis YAML, scripts y Compose pudieron verificarse; el build y smoke con contenedores quedan pendientes de repetir cuando el motor esté disponible.
+
+## Uso de Inteligencia Artificial
+
+Se utilizaron ChatGPT y Codex para auditar el repositorio, contrastar la arquitectura con la documentación vigente de GitHub y Render, extender el workflow, preparar la configuración runtime, los scripts de deploy y smoke, y organizar el procedimiento de rollback. Las propuestas se validaron con tests, coverage, builds y comprobaciones locales; ningún deploy, aprobación o evidencia externa se declara realizado sin una ejecución real.
+
+## Resumen para defensa TP6
+
+- **CI** verifica cada cambio; **Continuous Delivery** deja una versión lista para producción pero exige aprobación; **Continuous Deployment** la publicaría automáticamente sin esa decisión humana. Nuestro flujo implementa Delivery.
+- Un **artefacto** es la imagen Docker resultante. El SHA permite saber exactamente qué commit contiene y evita que una etiqueta mutable cambie de contenido.
+- QA se despliega automáticamente porque es el entorno de validación posterior a CI. Producción espera aprobación para revisar el resultado de QA y decidir el riesgo.
+- Los **GitHub Environments** separan secretos, URLs, historial y reglas de aprobación.
+- QA y producción no comparten base para que las pruebas no modifiquen datos reales.
+- El smoke comprueba frontend, backend, consulta a PostgreSQL y SHA; un hook aceptado no basta porque Render todavía puede estar descargando o arrancando la imagen.
+- **Deploy** es poner una versión en un entorno. **Release** es declarar oficialmente una versión aprobada, en este caso mediante `v6.0.0`.
+- **Promover** significa desplegar en producción las mismas imágenes SHA que pasaron por QA.
+- Nuestra estrategia garantiza **same image**. Una reconstrucción del proveedor garantizaría sólo **same commit**, no identidad bit a bit.
+- El rollback vuelve a desplegar las imágenes de un SHA bueno anterior y repite el smoke, pero no revierte automáticamente PostgreSQL.
+- **Recreate** detiene la versión anterior antes de iniciar la nueva; es simple pero tiene downtime. **Rolling** reemplaza instancias gradualmente. **Blue-green** mantiene dos entornos completos y cambia el tráfico. **Canary** entrega primero a una fracción de usuarios. **Feature flags** separan activación funcional de despliegue.
+- Para esta aplicación pequeña tiene sentido el rolling administrado por Render. Blue-green o canary agregarían costo y complejidad; serían razonables si crecieran el tráfico y el riesgo funcional.

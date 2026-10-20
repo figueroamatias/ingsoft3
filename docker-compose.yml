@@ -26,6 +26,7 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       PORT: 3000
+      APP_VERSION: ${APP_VERSION:-development}
     ports:
       - "8080:3000"
     depends_on:
@@ -38,6 +39,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:80"
+    environment:
+      BACKEND_URL: http://backend:3000
+      APP_VERSION: ${APP_VERSION:-development}
     depends_on:
       - backend
 
