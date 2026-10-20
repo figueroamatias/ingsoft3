@@ -6,7 +6,7 @@ Sistema web de control de gastos desarrollado para los trabajos prácticos de In
 
 ## Estado actual
 
-El TP1, TP2, TP3 y TP4 están terminados. La aplicación permite consultar y crear categorías, listar movimientos, registrar nuevos movimientos y visualizar un resumen financiero mediante el flujo React → Nginx → Express → PostgreSQL.
+Los TP1 a TP5 están terminados. El TP6 tiene implementada su base versionada de Continuous Delivery y queda pendiente de conectar la infraestructura externa de QA y producción. La aplicación permite consultar y crear categorías, listar movimientos, registrar nuevos movimientos y visualizar un resumen financiero mediante el flujo React → Nginx → Express → PostgreSQL.
 
 ## Funcionalidad
 

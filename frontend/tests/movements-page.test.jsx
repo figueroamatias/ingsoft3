@@ -40,6 +40,7 @@ describe("MovementsPage", () => {
     render(<MovementsPage />);
 
     // Assert
+    expect(screen.getByText("TP6 · Continuous Delivery")).toBeInTheDocument();
     expect(await screen.findByText("Compra inicial")).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /Alimentación/ })).toBeInTheDocument();
     expect(screen.getByText("1")).toBeInTheDocument();

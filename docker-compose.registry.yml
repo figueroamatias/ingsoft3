@@ -24,6 +24,7 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       PORT: 3000
+      APP_VERSION: ${APP_VERSION:-v0.1.0}
     ports:
       - "8080:3000"
     depends_on:
@@ -34,6 +35,9 @@ services:
     image: ghcr.io/figueroamatias/ingsoft3-frontend:v0.1.0
     ports:
       - "3000:80"
+    environment:
+      BACKEND_URL: http://backend:3000
+      APP_VERSION: ${APP_VERSION:-v0.1.0}
     depends_on:
       - backend
 

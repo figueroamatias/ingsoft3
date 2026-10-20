@@ -13,7 +13,12 @@ app.use(express.json());
 app.get("/health", async (_request, response, next) => {
   try {
     await checkDatabaseConnection();
-    response.json({ status: "ok", database: "connected" });
+    response.json({
+      status: "ok",
+      database: "connected",
+      version:
+        process.env.APP_VERSION ?? process.env.RENDER_GIT_COMMIT ?? "development",
+    });
   } catch {
     next(new AppError("La base de datos no está disponible.", 503));
   }

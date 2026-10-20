@@ -36,6 +36,17 @@ h1 {
   line-height: 1.05;
 }
 
+.release-marker {
+  display: inline-block;
+  margin: 14px 0 0;
+  border-radius: 999px;
+  padding: 6px 11px;
+  color: #145c45;
+  background: #dff3eb;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 .subtitle {
   max-width: 600px;
   margin: 20px 0 40px;
