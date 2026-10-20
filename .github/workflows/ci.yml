@@ -15,8 +15,8 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/ingsoft3-backend
-  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/ingsoft3-frontend
+  BACKEND_IMAGE: ghcr.io/figueroamatias/ingsoft3-backend
+  FRONTEND_IMAGE: ghcr.io/figueroamatias/ingsoft3-frontend
 
 jobs:
   build-backend:
@@ -115,6 +115,9 @@ jobs:
       - build-backend
       - build-frontend
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -150,6 +153,9 @@ jobs:
       - build-backend
       - build-frontend
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
