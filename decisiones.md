@@ -386,3 +386,39 @@ Se utilizaron ChatGPT y Codex para auditar el repositorio, contrastar la arquite
 - El rollback vuelve a desplegar las imágenes de un SHA bueno anterior y repite el smoke, pero no revierte automáticamente PostgreSQL.
 - **Recreate** detiene la versión anterior antes de iniciar la nueva; es simple pero tiene downtime. **Rolling** reemplaza instancias gradualmente. **Blue-green** mantiene dos entornos completos y cambia el tráfico. **Canary** entrega primero a una fracción de usuarios. **Feature flags** separan activación funcional de despliegue.
 - Para esta aplicación pequeña tiene sentido el rolling administrado por Render. Blue-green o canary agregarían costo y complejidad; serían razonables si crecieran el tráfico y el riesgo funcional.
+
+## TP6 — Cierre final verificado
+
+Esta sección reemplaza los estados `PENDIENTE` de la planificación inicial de TP6. La infraestructura fue creada, validada y utilizada en ejecuciones reales; los secretos, hooks y cadenas de conexión continúan fuera del repositorio.
+
+### Arquitectura y trazabilidad
+
+QA y producción están compuestos por frontend React/Vite servido por Nginx, backend Express/Node.js y bases PostgreSQL Neon separadas. Las bases `ingsoft3-qa` e `ingsoft3-prod` no comparten datos ni credenciales. Las URLs públicas son:
+
+- QA: [frontend](https://ingsoft3-frontend-qa.onrender.com/) y [backend](https://ingsoft3-backend-qa.onrender.com/).
+- Producción: [frontend](https://ingsoft3-frontend-prod.onrender.com/) y [backend](https://ingsoft3-backend-prod.onrender.com/).
+
+El pipeline ejecuta tests y quality gates antes de publicar las imágenes del backend y frontend en GHCR. Luego promueve esas imágenes con deploy hooks a QA, ejecuta el smoke test y solicita aprobación del Environment `production`, que conserva su required reviewer. Los endpoints `/health` y `/version` permitieron verificar el SHA de backend y frontend; `/health` además confirmó `status: ok` y `database: connected` contra PostgreSQL.
+
+### Evidencia real de aprobación, rechazo y rollback
+
+- PR de demostración de rechazo: [#38](https://github.com/figueroamatias/ingsoft3/pull/38). Tras un QA correcto, la primera ejecución del [run 39489173088](https://github.com/figueroamatias/ingsoft3/actions/runs/39489173088) fue rechazada deliberadamente en el gate de producción. El motivo registrado fue que QA había pasado y el rechazo era una prueba controlada del reviewer requerido; por ello producción no se promovió en ese intento.
+- PR de aprobación: [#40](https://github.com/figueroamatias/ingsoft3/pull/40). El [run 39489915050](https://github.com/figueroamatias/ingsoft3/actions/runs/39489915050) completó CI, publicación, QA, smoke, aprobación y smoke de producción.
+- SHA aprobado y desplegado finalmente: `b305d88d91a70202b73b9eac6afd6648609c97cb`.
+- Se realizó un rollback real de producción desde `b305d88…` a `e448e855b1e015ff6ac15e8d644436f959df4396`; backend y frontend respondieron ese SHA y PostgreSQL permaneció conectado. Luego se restauró producción a `b305d88…` y se volvió a comprobar el smoke. No se registró una duración confiable y por eso no se declara un tiempo inventado.
+
+El rollback de aplicación no equivale al rollback de la base de datos: volver a una imagen anterior no reconstruye una columna o datos eliminados por una migración destructiva. Los cambios de esquema deben ser compatibles y disponer de una recuperación propia.
+
+### Nginx, smoke y release
+
+El proxy Nginx del frontend devolvía 502 al conectar con el backend HTTPS de Render porque faltaban SNI y el Host del destino. La solución quedó versionada en `frontend/nginx.conf`: `proxy_ssl_server_name`, `proxy_ssl_name` y el Host correcto para el upstream. `BACKEND_URL` continúa configurándose en runtime, por lo que QA y producción reutilizan la misma imagen con valores distintos.
+
+El primer smoke no podía comprobar texto renderizado por React con un `curl` al HTML inicial. Se agregó un marcador estático en `frontend/index.html`, manteniendo la verificación de despliegue sin depender de la ejecución de JavaScript en el cliente.
+
+La Release [v6.0.0](https://github.com/figueroamatias/ingsoft3/releases/tag/v6.0.0) y su tag apuntan a `b305d88d91a70202b73b9eac6afd6648609c97cb`. No se movieron al documentar este cierre, ya que representan el commit real desplegado en producción.
+
+### Problemas encontrados y uso de IA
+
+Los problemas relevantes fueron el proxy HTTPS de Nginx, la imposibilidad de verificar contenido dinámico de React desde el smoke y la necesidad de diferenciar aceptación de un hook de disponibilidad efectiva. Se resolvieron versionando el proxy, agregando el marcador estático y verificando backend, base, frontend y SHA luego de cada despliegue.
+
+Se utilizaron ChatGPT y Codex para interpretar documentación, revisar el workflow, preparar cambios y organizar las verificaciones. Cada resultado se comprobó con ejecuciones reales de GitHub Actions, endpoints de QA/producción, logs de los jobs, Pull Requests, deploys y el rollback controlado.
