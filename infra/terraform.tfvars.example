@@ -1,0 +1,3 @@
+# Copiar como local.tfvars. No versionar el archivo real.
+app_version = "sha-5e6e2ccad6d431c784af6dbf45c5a3ebbef91b4c"
+db_password = "reemplazar-por-secreto-local"
