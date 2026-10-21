@@ -17,7 +17,9 @@ LABEL org.opencontainers.image.revision=$APP_VERSION
 
 ENV APP_VERSION=$APP_VERSION
 ENV BACKEND_URL=http://backend:3000
-ENV NGINX_ENVSUBST_FILTER="^(APP_VERSION|BACKEND_URL)$"
+ENV SENTRY_DSN=""
+ENV SENTRY_ENVIRONMENT=production
+ENV NGINX_ENVSUBST_FILTER="^(APP_VERSION|BACKEND_URL|SENTRY_DSN|SENTRY_ENVIRONMENT)$"
 
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html

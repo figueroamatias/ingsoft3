@@ -12,6 +12,7 @@ export default {
       exclude: [
         "src/main.jsx",
         "src/App.jsx",
+        "src/config/sentry.js",
       ],
       thresholds: {
         branches: coverageThreshold,

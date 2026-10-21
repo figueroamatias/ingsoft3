@@ -1,4 +1,5 @@
 import { AppError } from "../errors/app-error.js";
+import * as Sentry from "@sentry/node";
 
 // Express y sus middlewares (por ejemplo express.json) señalan los errores de
 // request malformado con un status HTTP propio. Se respeta sólo si es un 4xx
@@ -26,6 +27,7 @@ export function errorHandler(error, _request, response, _next) {
       .json({ error: "La solicitud recibida no es válida." });
   }
 
+  Sentry.captureException(error);
   console.error(error);
   return response.status(500).json({ error: "Ocurrió un error interno." });
 }

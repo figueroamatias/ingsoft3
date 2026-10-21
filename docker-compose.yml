@@ -27,6 +27,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       PORT: 3000
       APP_VERSION: ${APP_VERSION:-development}
+      SENTRY_DSN: ${SENTRY_BACKEND_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-local}
     ports:
       - "8080:3000"
     depends_on:
@@ -42,6 +44,8 @@ services:
     environment:
       BACKEND_URL: http://backend:3000
       APP_VERSION: ${APP_VERSION:-development}
+      SENTRY_DSN: ${SENTRY_FRONTEND_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-local}
     depends_on:
       - backend
 
