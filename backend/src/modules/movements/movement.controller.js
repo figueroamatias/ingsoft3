@@ -32,3 +32,12 @@ export async function create(request, response, next) {
     next(error);
   }
 }
+
+export async function remove(request, response, next) {
+  try {
+    await movementService.deleteMovement(request.params.id);
+    response.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+}

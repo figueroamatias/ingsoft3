@@ -6,6 +6,7 @@ import { MovementList } from "../components/MovementList.jsx";
 import {
   createCategory,
   createMovement,
+  deleteMovement,
   getCategories,
   getFinancialSummary,
   getMovements,
@@ -23,6 +24,7 @@ export function MovementsPage() {
   const [isSummaryLoading, setIsSummaryLoading] = useState(true);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingMovementId, setDeletingMovementId] = useState(null);
   const [categoryError, setCategoryError] = useState("");
   const [categoryCreationError, setCategoryCreationError] = useState("");
   const [summaryError, setSummaryError] = useState("");
@@ -89,6 +91,21 @@ export function MovementsPage() {
     }
   }
 
+  async function handleDeleteMovement(id) {
+    setDeletingMovementId(id);
+    setError("");
+
+    try {
+      await deleteMovement(id);
+      setMovements((current) => current.filter((movement) => movement.id !== id));
+      await refreshSummary();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setDeletingMovementId(null);
+    }
+  }
+
   return (
     <main className="app-shell">
       <header>
@@ -139,7 +156,11 @@ export function MovementsPage() {
         {isLoading ? (
           <p className="status">Cargando movimientos…</p>
         ) : (
-          <MovementList movements={movements} />
+          <MovementList
+            isDeletingId={deletingMovementId}
+            movements={movements}
+            onDelete={handleDeleteMovement}
+          />
         )}
       </section>
     </main>

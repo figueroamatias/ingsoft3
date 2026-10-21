@@ -93,6 +93,16 @@ function parseCategoryId(categoryId) {
   return numericCategoryId;
 }
 
+function parseMovementId(id) {
+  const numericId = Number(id);
+
+  if (!Number.isInteger(numericId) || numericId <= 0) {
+    throw new AppError("El identificador del movimiento no es válido.", 400);
+  }
+
+  return numericId;
+}
+
 export function createMovementService({
   categoryRepository: categories,
   movementRepository: movements,
@@ -133,7 +143,16 @@ export function createMovementService({
     });
   }
 
-  return { createMovement, getAllMovements, getFinancialSummary };
+  async function deleteMovement(id) {
+    const movementId = parseMovementId(id);
+    const deletedMovement = await movements.removeById(movementId);
+
+    if (!deletedMovement) {
+      throw new AppError("El movimiento indicado no existe.", 404);
+    }
+  }
+
+  return { createMovement, deleteMovement, getAllMovements, getFinancialSummary };
 }
 
 const movementService = createMovementService({
@@ -141,5 +160,5 @@ const movementService = createMovementService({
   movementRepository,
 });
 
-export const { createMovement, getAllMovements, getFinancialSummary } =
+export const { createMovement, deleteMovement, getAllMovements, getFinancialSummary } =
   movementService;

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createCategory,
   createMovement,
+  deleteMovement,
   getCategories,
   getFinancialSummary,
   getMovements,
@@ -92,5 +93,13 @@ describe("API client", () => {
     await expect(getMovements()).rejects.toThrow(
       "No se pudo completar la solicitud.",
     );
+  });
+
+  it("elimina un movimiento mediante DELETE", async () => {
+    fetch.mockResolvedValue(jsonResponse(null));
+
+    await deleteMovement(9);
+
+    expect(fetch).toHaveBeenCalledWith("/api/movements/9", { method: "DELETE" });
   });
 });

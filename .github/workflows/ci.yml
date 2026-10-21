@@ -138,7 +138,7 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+          tags: ${{ env.BACKEND_IMAGE }}:sha-${{ github.sha }}
           build-args: |
             APP_VERSION=${{ github.sha }}
           labels: |
@@ -176,7 +176,7 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+          tags: ${{ env.FRONTEND_IMAGE }}:sha-${{ github.sha }}
           build-args: |
             APP_VERSION=${{ github.sha }}
           labels: |
@@ -209,8 +209,8 @@ jobs:
           BACKEND_DEPLOY_HOOK: ${{ secrets.BACKEND_DEPLOY_HOOK }}
           FRONTEND_DEPLOY_HOOK: ${{ secrets.FRONTEND_DEPLOY_HOOK }}
         run: |
-          scripts/trigger-render-deploy.sh "$BACKEND_DEPLOY_HOOK" "${BACKEND_IMAGE}:${GITHUB_SHA}"
-          scripts/trigger-render-deploy.sh "$FRONTEND_DEPLOY_HOOK" "${FRONTEND_IMAGE}:${GITHUB_SHA}"
+          scripts/trigger-render-deploy.sh "$BACKEND_DEPLOY_HOOK" "${BACKEND_IMAGE}:sha-${GITHUB_SHA}"
+          scripts/trigger-render-deploy.sh "$FRONTEND_DEPLOY_HOOK" "${FRONTEND_IMAGE}:sha-${GITHUB_SHA}"
 
       - name: Smoke test QA
         env:
@@ -218,10 +218,82 @@ jobs:
           FRONTEND_URL: ${{ vars.FRONTEND_URL }}
         run: scripts/smoke-test.sh "$BACKEND_URL" "$FRONTEND_URL" "$GITHUB_SHA"
 
-  deploy-prod:
+  integracion:
     if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.CD_ENABLED == 'true' }}
     needs:
       - deploy-qa
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run integration tests against QA API
+        working-directory: ./frontend
+        env:
+          API_BASE_URL: ${{ vars.BACKEND_URL }}
+        run: npm run test:integration
+
+      - name: Upload integration Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-integracion
+          path: frontend/playwright-report
+          retention-days: 7
+
+  e2e:
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.CD_ENABLED == 'true' }}
+    needs:
+      - integracion
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies and Chromium
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run end-to-end tests against QA frontend
+        working-directory: ./frontend
+        env:
+          E2E_BASE_URL: ${{ vars.FRONTEND_URL }}
+        run: npm run test:e2e
+
+      - name: Upload end-to-end Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-e2e
+          path: frontend/playwright-report
+          retention-days: 7
+
+  deploy-prod:
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.CD_ENABLED == 'true' }}
+    needs:
+      - e2e
     runs-on: ubuntu-latest
     timeout-minutes: 20
     concurrency:
@@ -244,8 +316,8 @@ jobs:
           BACKEND_DEPLOY_HOOK: ${{ secrets.BACKEND_DEPLOY_HOOK }}
           FRONTEND_DEPLOY_HOOK: ${{ secrets.FRONTEND_DEPLOY_HOOK }}
         run: |
-          scripts/trigger-render-deploy.sh "$BACKEND_DEPLOY_HOOK" "${BACKEND_IMAGE}:${GITHUB_SHA}"
-          scripts/trigger-render-deploy.sh "$FRONTEND_DEPLOY_HOOK" "${FRONTEND_IMAGE}:${GITHUB_SHA}"
+          scripts/trigger-render-deploy.sh "$BACKEND_DEPLOY_HOOK" "${BACKEND_IMAGE}:sha-${GITHUB_SHA}"
+          scripts/trigger-render-deploy.sh "$FRONTEND_DEPLOY_HOOK" "${FRONTEND_IMAGE}:sha-${GITHUB_SHA}"
 
       - name: Smoke test production
         env:

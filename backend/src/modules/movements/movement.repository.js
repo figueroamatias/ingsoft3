@@ -64,3 +64,12 @@ export async function create({ description, amount, date, categoryId }) {
 
   return findById(result.rows[0].id);
 }
+
+export async function removeById(id) {
+  const result = await pool.query(
+    "DELETE FROM movements WHERE id = $1 RETURNING id",
+    [id],
+  );
+
+  return result.rows[0] ?? null;
+}

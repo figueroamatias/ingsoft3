@@ -14,7 +14,7 @@ function formatDate(date) {
   );
 }
 
-export function MovementList({ movements }) {
+export function MovementList({ movements, onDelete, isDeletingId }) {
   if (movements.length === 0) {
     return <p className="empty-state">Todavía no hay movimientos registrados.</p>;
   }
@@ -32,6 +32,14 @@ export function MovementList({ movements }) {
           <strong className={`amount amount-${movement.category.type}`}>
             {currencyFormatter.format(movement.amount)}
           </strong>
+          <button
+            aria-label={`Eliminar ${movement.description}`}
+            disabled={isDeletingId === movement.id}
+            onClick={() => onDelete(movement.id)}
+            type="button"
+          >
+            {isDeletingId === movement.id ? "Eliminando…" : "Eliminar"}
+          </button>
         </article>
       ))}
     </div>
