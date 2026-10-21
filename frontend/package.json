@@ -16,6 +16,7 @@
     "node": ">=22"
   },
   "dependencies": {
+    "@sentry/react": "^11.8.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
