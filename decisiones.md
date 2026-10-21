@@ -422,3 +422,62 @@ La Release [v6.0.0](https://github.com/figueroamatias/ingsoft3/releases/tag/v6.0
 Los problemas relevantes fueron el proxy HTTPS de Nginx, la imposibilidad de verificar contenido dinámico de React desde el smoke y la necesidad de diferenciar aceptación de un hook de disponibilidad efectiva. Se resolvieron versionando el proxy, agregando el marcador estático y verificando backend, base, frontend y SHA luego de cada despliegue.
 
 Se utilizaron ChatGPT y Codex para interpretar documentación, revisar el workflow, preparar cambios y organizar las verificaciones. Cada resultado se comprobó con ejecuciones reales de GitHub Actions, endpoints de QA/producción, logs de los jobs, Pull Requests, deploys y el rollback controlado.
+
+## TP7 — Contenedores y pruebas end-to-end
+
+### Flujo final y artefacto promovido
+
+Se extendió el flujo de entrega para ejecutar, en este orden, publicación de imágenes en GHCR, despliegue y smoke de QA, pruebas de integración HTTP, pruebas end-to-end de navegador, gate manual de `production`, despliegue de producción y smoke final. Los jobs de integración y E2E son dependencias del gate de producción, por lo que una falla en cualquiera de ellos impide que producción quede disponible para aprobación.
+
+Las imágenes se identifican exclusivamente mediante el formato `sha-<commit>`. QA y producción reciben las mismas referencias de backend y frontend mediante los deploy hooks de Render, sin reconstruirlas entre ambientes. El commit finalmente aprobado y desplegado fue:
+
+```text
+5e6e2ccad6d431c784af6dbf45c5a3ebbef91b4c
+```
+
+Por lo tanto, las referencias promovidas fueron:
+
+```text
+ghcr.io/figueroamatias/ingsoft3-backend:sha-5e6e2ccad6d431c784af6dbf45c5a3ebbef91b4c
+ghcr.io/figueroamatias/ingsoft3-frontend:sha-5e6e2ccad6d431c784af6dbf45c5a3ebbef91b4c
+```
+
+Después de la aprobación, `/health` de los backends QA y producción respondió `status: ok`, `database: connected` y ese SHA. Los endpoints `/version` de ambos frontends devolvieron el mismo SHA. El job `deploy-prod` del run final también completó su smoke correctamente.
+
+### Pruebas Playwright y cleanup
+
+Se configuró Playwright en el frontend con dos grupos de tres pruebas contra servicios reales de QA:
+
+- Integración HTTP: verifica categorías reales, crea/lista/elimina un movimiento y valida que una descripción vacía sea rechazada sin persistir datos.
+- E2E de navegador: crea y elimina un movimiento desde la interfaz, verifica la validación de formulario y comprueba la actualización y restauración del resumen financiero.
+
+Las pruebas crean datos identificables propios y los eliminan al finalizar. Para soportar ese cleanup de manera segura se incorporó `DELETE /api/movements/:id`, respetando las capas Controller, Service y Repository. Los reportes se publican como artifacts independientes llamados `playwright-report-integracion` y `playwright-report-e2e`.
+
+### Evidencia roja, corrección y evidencia verde
+
+La evidencia roja obligatoria se realizó en el [run 39532398477](https://github.com/figueroamatias/ingsoft3/actions/runs/39532398477). Se introdujo deliberadamente una regresión real en la interfaz: el encabezado accesible del resumen dejó de llamarse `Resumen financiero`. El resultado observado fue:
+
+- Integración HTTP: verde, con sus tres pruebas contra la API QA.
+- E2E: rojo; dos pruebas pasaron y la prueba del resumen falló al no encontrar el encabezado real esperado.
+- Producción: bloqueada; `deploy-prod` quedó omitido y nunca solicitó aprobación.
+- Artifacts: se conservaron los reportes `playwright-report-integracion` y `playwright-report-e2e`, incluyendo captura y trace del fallo E2E.
+
+La regresión se corrigió en el [PR #45](https://github.com/figueroamatias/ingsoft3/pull/45), que restauró el encabezado. El [run verde 39533090752](https://github.com/figueroamatias/ingsoft3/actions/runs/39533090752) aprobó build, coverage, publicación GHCR, QA, smoke, las tres pruebas de integración, las tres pruebas E2E y, tras la aprobación humana de `production`, el despliegue y smoke de PROD.
+
+### Problemas encontrados y soluciones
+
+- En la primera ejecución de validación, las pruebas de integración y E2E no recibían las variables de URL de QA porque esos jobs no declaraban el Environment `qa`. Se agregó ese environment a ambos jobs y las pruebas comenzaron a consumir los servicios reales.
+- La evidencia roja no se simuló modificando una prueba: se alteró una pieza visible de la aplicación. Así se comprobó que el E2E detecta una regresión funcional que la integración HTTP no puede observar.
+- Los tests E2E iniciales podían dejar movimientos de prueba si el flujo se interrumpía. Se agregó la eliminación explícita y el endpoint de backend correspondiente para que el cleanup sea parte de cada escenario exitoso.
+
+### Preparación para defensa
+
+- La integración prueba el contrato HTTP y la persistencia en QA sin navegador; E2E prueba el recorrido visible de un usuario real sobre el frontend desplegado.
+- QA y PROD no construyen imágenes nuevas: ambos reciben el mismo tag SHA, por lo que se promueve el mismo artefacto validado.
+- El reviewer de `production` se solicita sólo después de que integración y E2E terminan correctamente. La corrida roja demuestra que no es un gate decorativo.
+- Los artifacts Playwright permiten revisar capturas, contexto y trace aun cuando el job ya terminó.
+- El cleanup evita que una prueba de aceptación contamine la base compartida de QA y permite repetir el flujo de forma confiable.
+
+### Uso de Inteligencia Artificial
+
+Se utilizaron ChatGPT y Codex como asistencia para interpretar la consigna, diseñar el orden del pipeline, preparar los tests Playwright, revisar el cleanup y organizar la evidencia roja y verde. Las propuestas se verificaron con los runs reales, logs, artifacts, Pull Requests, endpoints QA/PROD, smoke tests y la aprobación humana del Environment `production`.
