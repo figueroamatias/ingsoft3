@@ -127,7 +127,7 @@ export function MovementsPage() {
       {error && <p className="status status-error">{error}</p>}
 
       <section className="panel" aria-labelledby="financial-summary-title">
-        <h2 id="financial-summary-title">Resumen de gastos</h2>
+        <h2 id="financial-summary-title">Resumen financiero</h2>
         <FinancialSummary summary={summary} isLoading={isSummaryLoading} />
       </section>
 
