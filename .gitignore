@@ -22,3 +22,10 @@ Thumbs.db
 .claude/
 .codex/
 .arnes/
+
+# Terraform / IaC: el estado y los valores locales pueden contener secretos.
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/*.tfvars
+!infra/terraform.tfvars.example

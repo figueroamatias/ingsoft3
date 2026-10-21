@@ -481,3 +481,25 @@ La regresión se corrigió en el [PR #45](https://github.com/figueroamatias/ings
 ### Uso de Inteligencia Artificial
 
 Se utilizaron ChatGPT y Codex como asistencia para interpretar la consigna, diseñar el orden del pipeline, preparar los tests Playwright, revisar el cleanup y organizar la evidencia roja y verde. Las propuestas se verificaron con los runs reales, logs, artifacts, Pull Requests, endpoints QA/PROD, smoke tests y la aprobación humana del Environment `production`.
+
+## TP8 — Infraestructura como Código
+
+### Riel elegido
+
+Se utilizó el Plan C admitido por la cátedra: Terraform 1.16.6 con el provider Docker `kreuzwerker/docker` 4.6.0, fijado también en `infra/.terraform.lock.hcl`. Este riel declara un entorno nuevo y efímero llamado `preprod` sobre Docker local. Se eligió porque las credenciales de API necesarias para administrar Render no estaban disponibles en el entorno de trabajo y la conexión de Render requería reautenticación; no se inventaron ni copiaron claves.
+
+QA y producción de TP6/TP7 no fueron importados, migrados ni modificados. Preprod convive con ellos con una red, volumen, contenedores y puertos propios (`8090` para backend y `8091` para frontend). Declara PostgreSQL 16, ejecuta `database/init.sql` y consume exactamente las imágenes inmutables del TP7 `sha-5e6e2ccad6d431c784af6dbf45c5a3ebbef91b4c`. La dirección del backend se deriva del contenedor Terraform y no de una URL copiada de QA o producción.
+
+### Resultados y problemas encontrados
+
+El plan inicial declaró ocho recursos nuevos y ningún cambio o destrucción. El apply creó el entorno completo; `/health` confirmó PostgreSQL conectado y el SHA esperado, `/api/categories` devolvió las categorías iniciales y el frontend respondió mediante su propio proxy. El segundo plan no mostró cambios, comprobando idempotencia.
+
+Se provocó drift de forma segura eliminando manualmente sólo el contenedor de backend de preprod. Terraform detectó exactamente un recurso a recrear y el apply restauró el servicio. También se completó el ciclo `destroy → apply`: los recursos de preprod desaparecieron y volvieron a crearse, manteniendo QA y producción intactos. Preprod se destruye al finalizar cada sesión porque es efímero; el código y el state local permiten recrearlo en la defensa.
+
+El state se configura localmente fuera del repositorio, en `$HOME/tfstate/ingsoft3-preprod.tfstate`. No se versiona porque puede contener la contraseña de PostgreSQL y porque es la memoria que relaciona el código con los recursos reales. Si se pierde, la infraestructura no desaparece, pero Terraform deja de conocerla y habría que importarla o recrearla. En un equipo se usaría un backend remoto con bloqueo.
+
+Se agregaron exclusiones para `.terraform/`, state y archivos `tfvars`; sólo se versiona `terraform.tfvars.example`. El pipeline de `plan` en Pull Request no se agregó porque la guía lo declara explícitamente opcional y el Plan C requeriría un runner self-hosted con acceso al Docker local y al state de esta máquina. Los pipelines existentes de TP4 a TP7 no fueron alterados.
+
+### Uso de Inteligencia Artificial
+
+Se utilizaron ChatGPT y Codex para interpretar la consigna, adaptar el HCL al stack Node/React/PostgreSQL existente y revisar la configuración del provider Docker. La implementación se verificó ejecutando `fmt`, `init`, `validate`, un plan real, apply, health, acceso a categorías, frontend, idempotencia, drift, reparación y el ciclo destroy/apply. El HCL y los planes fueron revisados antes de aplicar para asegurar que sólo mencionaran recursos `ingsoft3-preprod-*`.
