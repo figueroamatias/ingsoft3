@@ -40,3 +40,7 @@ export function createMovement(movement) {
     body: JSON.stringify(movement),
   });
 }
+
+export function deleteMovement(id) {
+  return request(`/api/movements/${id}`, { method: "DELETE" });
+}

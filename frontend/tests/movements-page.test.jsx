@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const api = vi.hoisted(() => ({
   createCategory: vi.fn(),
   createMovement: vi.fn(),
+  deleteMovement: vi.fn(),
   getCategories: vi.fn(),
   getFinancialSummary: vi.fn(),
   getMovements: vi.fn(),
@@ -145,5 +146,30 @@ describe("MovementsPage", () => {
     // Assert
     expect(await screen.findByText("categoría duplicada")).toBeInTheDocument();
     expect(await screen.findByText("movimiento inválido")).toBeInTheDocument();
+  });
+
+  it("elimina un movimiento y actualiza el resumen", async () => {
+    const user = userEvent.setup();
+    api.deleteMovement.mockResolvedValue(undefined);
+    render(<MovementsPage />);
+    await screen.findByText("Compra inicial");
+
+    await user.click(screen.getByRole("button", { name: "Eliminar Compra inicial" }));
+
+    expect(api.deleteMovement).toHaveBeenCalledWith(1);
+    await waitFor(() => expect(screen.queryByText("Compra inicial")).not.toBeInTheDocument());
+    await waitFor(() => expect(api.getFinancialSummary).toHaveBeenCalledTimes(2));
+  });
+
+  it("muestra el error si no puede eliminar un movimiento", async () => {
+    const user = userEvent.setup();
+    api.deleteMovement.mockRejectedValue(new Error("movimiento no encontrado"));
+    render(<MovementsPage />);
+    await screen.findByText("Compra inicial");
+
+    await user.click(screen.getByRole("button", { name: "Eliminar Compra inicial" }));
+
+    expect(await screen.findByText("movimiento no encontrado")).toBeInTheDocument();
+    expect(screen.getByText("Compra inicial")).toBeInTheDocument();
   });
 });

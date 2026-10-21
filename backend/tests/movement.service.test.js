@@ -18,6 +18,7 @@ describe("movement service", () => {
     categoryRepository = { findById: vi.fn() };
     movementRepository = {
       create: vi.fn(),
+      removeById: vi.fn(),
       findAll: vi.fn(),
       summarizeByType: vi.fn(),
     };
@@ -147,5 +148,24 @@ describe("movement service", () => {
     // Assert
     expect(result).toBe(movements);
     expect(movementRepository.findAll).toHaveBeenCalledOnce();
+  });
+
+  it("elimina un movimiento existente", async () => {
+    movementRepository.removeById.mockResolvedValue({ id: 10 });
+
+    await service.deleteMovement("10");
+
+    expect(movementRepository.removeById).toHaveBeenCalledWith(10);
+  });
+
+  it.each([0, "abc"])("rechaza un identificador de movimiento inválido", async (id) => {
+    await expect(service.deleteMovement(id)).rejects.toMatchObject({ statusCode: 400 });
+    expect(movementRepository.removeById).not.toHaveBeenCalled();
+  });
+
+  it("informa un movimiento inexistente al eliminarlo", async () => {
+    movementRepository.removeById.mockResolvedValue(null);
+
+    await expect(service.deleteMovement(10)).rejects.toMatchObject({ statusCode: 404 });
   });
 });
