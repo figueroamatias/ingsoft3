@@ -24,6 +24,10 @@ app.get("/health", async (_request, response, next) => {
   }
 });
 
+app.get("/api/falla", () => {
+  throw new Error("Falla de prueba TP9");
+});
+
 app.use("/api/categories", categoryRouter);
 app.use("/api/movements", movementRouter);
 
