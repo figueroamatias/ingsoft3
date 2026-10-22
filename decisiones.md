@@ -503,3 +503,40 @@ Se agregaron exclusiones para `.terraform/`, state y archivos `tfvars`; sólo se
 ### Uso de Inteligencia Artificial
 
 Se utilizaron ChatGPT y Codex para interpretar la consigna, adaptar el HCL al stack Node/React/PostgreSQL existente y revisar la configuración del provider Docker. La implementación se verificó ejecutando `fmt`, `init`, `validate`, un plan real, apply, health, acceso a categorías, frontend, idempotencia, drift, reparación y el ciclo destroy/apply. El HCL y los planes fueron revisados antes de aplicar para asegurar que sólo mencionaran recursos `ingsoft3-preprod-*`.
+
+## TP9 — DevSecOps, observabilidad y feedback continuo
+
+### Seguridad y dependencias
+
+Se incorporó Dependabot al flujo de mantenimiento y se verificó el PR #50, que fue mergeado. CodeQL quedó activo para el análisis estático y GitHub Push Protection permaneció habilitado para impedir la publicación accidental de secretos. La revisión del repositorio no encontró archivos `.env` versionados ni credenciales reales; los valores sensibles continúan llegando mediante secretos y variables de los entornos.
+
+### Observabilidad con Sentry
+
+Se configuraron proyectos separados de Sentry para backend y frontend y ambos quedaron funcionando en producción. Para comprobar la integración se desplegó temporalmente un endpoint controlado que generó el error real `Falla de prueba TP9`. Sentry registró un evento `GET /api/falla` en `ingsoft3-backend-prod` el 22 de octubre de 2026 a las 02:39:43 UTC, con nivel Error y el stack trace correspondiente. Luego el endpoint fue eliminado mediante el PR #61; la versión limpia en producción responde 404 para esa ruta.
+
+La consulta de rendimiento de Sentry (ventana de 14 días) mostró:
+
+- operación más usada: `GET /api/movements/summary`, con 5 eventos;
+- operación más lenta por P95: `GET /api/movements/summary`, con P95 real de 176.33 ms y p75 de 55.25 ms.
+
+Con esos datos se creó y agregó al tablero TP3 la Issue #62, “Optimizar GET /api/movements/summary según P95 de Sentry”, para mantener la trazabilidad entre observabilidad y planificación.
+
+### Monitor externo
+
+Se configuró un monitor externo de UptimeRobot sobre `https://ingsoft3-backend-prod.onrender.com/health`. El estado inicial fue UP. Luego se realizó una caída controlada y el historial registró el incidente como `503 Service Unavailable`, iniciado a las 00:44:40 GMT-3. La recuperación posterior volvió correctamente a UP y el incidente tuvo una duración observada de 5 minutos y 3 segundos. Finalizada la comprobación, el monitor quedó pausado para no generar alertas permanentes durante la defensa.
+
+### Problemas encontrados y soluciones
+
+- Fue necesario desplegar temporalmente un endpoint controlado para validar que el SDK de Sentry capturara un error real de producción. La evidencia se obtuvo en Sentry y el endpoint se eliminó inmediatamente después mediante un PR separado.
+- La consulta de Sentry se realizó sobre transacciones reales de producción para distinguir la operación más utilizada de la operación con mayor P95, evitando tomar decisiones a partir de datos inventados o de pruebas locales.
+- El monitor externo se probó con una interrupción controlada del healthcheck, se verificó la recuperación y se dejó pausado al finalizar para mantener el entorno estable.
+
+### Preparación para defensa
+
+- `/health` confirmó HTTP 200, estado `ok` y conexión real con PostgreSQL en QA y PROD; `/version` confirmó el mismo commit desplegado en ambos frontends.
+- La corrida limpia del pipeline terminó en verde con build, publicación, QA, integración, E2E y producción; el SHA verificado fue `5215f21bf149f4f49e5818584aea05e5b230e38d`.
+- El flujo completo queda demostrable con una evidencia de error real en Sentry, métricas de uso y latencia, una tarjeta de mejora en el tablero TP3 y un monitor externo que detectó y observó la recuperación de una caída.
+
+### Uso de Inteligencia Artificial
+
+Se utilizaron ChatGPT y Codex como asistencia para interpretar la consigna del TP9, revisar la integración de Sentry, organizar la consulta de métricas, preparar el escenario controlado de error, documentar el monitor y relacionar el dato de P95 con una tarjeta del tablero TP3. Todas las propuestas fueron verificadas con el run real de GitHub Actions, los endpoints desplegados, el issue y las transacciones visibles en Sentry, la tarjeta #62, el historial de UptimeRobot y la revisión final de secretos.
